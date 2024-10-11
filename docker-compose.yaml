@@ -10,17 +10,6 @@ services:
       - ./${JSON_KEY_FILE}:/config
     networks: [backend]
   
-  incidents-replica:
-    image: gcr.io/cloudsql-docker/gce-proxy:1.12
-    platform: linux/amd64
-    container_name: incidents-replica
-    command: /cloud_sql_proxy -instances=${INSTANCE_INCIDENTS_REPLICA} -credential_file=/config
-    ports:
-      - '0.0.0.0:${PORT_INCIDENTS_REPLICA}:3306'
-    volumes:
-      - ./${JSON_KEY_FILE}:/config
-    networks: [backend]
- 
   redis:
     image: redis:alpine
     container_name: ${DOCKER_REDIS_SERVICE_NAME}
