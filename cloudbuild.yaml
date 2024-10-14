@@ -1,0 +1,55 @@
+steps:
+  - id: pip-install
+    name: 'python:3.9-slim'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        python -m venv venv && \
+        . venv/bin/activate && \
+        pip install -r requirements.txt
+
+  - id: build
+    name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--target'
+      - 'production'
+      - '-t'
+      - '$_AR_HOSTNAME/$_PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:$COMMIT_SHA'
+      - './incidentes'
+
+  - id: push
+    name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '$_AR_HOSTNAME/$_PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:$COMMIT_SHA'
+
+  - id: get-secret
+    name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      [
+        '-c',
+        "gcloud secrets versions access latest --secret=$_SECRET --format='get(payload.data)' | tr '_-' '/+' | base64 -d > /workspace/env.yaml",
+      ]
+
+  - id: deploy
+    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '$_SERVICE_NAME'
+      - '--image'
+      - '$_AR_HOSTNAME/$_PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:$COMMIT_SHA'
+      - '--region'
+      - '$_DEPLOY_REGION'
+      - "--env-vars-file=/workspace/env.yaml"
+      - '--project'
+      - '$_PROJECT_ID'
+      - '--set-cloudsql-instances'
+      - '$_CLOUDSQL_INSTANCE'
+      - '--vpc-connector=$_VPC_CONNECTOR'
+options:
+  logging: CLOUD_LOGGING_ONLY

@@ -1,0 +1,31 @@
+#!/bin/bash
+FILE=$1
+MESSAGE=$(cat $FILE)
+
+# Verifica que el mensaje del commit tenga un prefijo válido
+# Si no tiene prefijo válido, aborta el commit
+POSSIBLE_PREFIXES="build:|chore:|feat:|add:|fix:|hotfix:|docs:|refactor:|perf:|style:|test:"
+
+if [[ ! "$MESSAGE" =~ ^($POSSIBLE_PREFIXES) ]]; then
+  echo "El mensaje del commit no tiene un prefijo válido. Los prefijos válidos son:"
+  echo "- build: Relacionados a la construcción del proyecto (Librerías, dependencias externas, npm) "
+  echo "- chore: Cambios que el usuario no verá (Cambios en .env, .gitignore)"
+  echo "- feat: Nueva característica/módulo"
+  echo "- add: Nueva funcionalidad a una característica existente"
+  echo "- fix: Corrección de errores"
+  echo "- docs: Cambios orientados a documentación (comentarios incluidos)"
+  echo "- refactor: Cambios que no corrigen errores ni añaden funcionalidades"
+  echo "- perf: Cambios orientados a mejorar el rendimiento"
+  echo "- style: Cambios orientados a mejorar la legibilidad del código"
+  echo "- test: Agregar, modificar o eliminar pruebas"
+  echo "Abortando commit..."
+  exit 1
+fi
+
+# Agrega el prefijo del ticket al mensaje del commit, sólo funciona con ramas que tengan el formato T7-XXXX, por ejemplo: T7-1234
+TICKET=[$(git rev-parse --abbrev-ref HEAD | grep -Eo '^(\w+/)?(\w+[-_])?[0-9]+' | grep -Eo '(\w+[-])?[0-9]+' | tr "[:lower:]" "[:upper:]")]
+if [[ $TICKET == "[]" || "$MESSAGE" == "$TICKET"* ]]; then
+  exit 0
+fi
+
+echo "$TICKET $MESSAGE" >$FILE
