@@ -1,19 +1,10 @@
-
 steps:
-  - id: move-to-incidentes
-    name: 'alpine'
-    entrypoint: 'sh'
-    args:
-      - '-c'
-      - 'cd incidentes'
-
   - id: pip-install
     name: 'python:3.9-slim'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        cd incidentes && \
         python -m venv venv && \
         . venv/bin/activate && \
         pip install -r requirements.txt
