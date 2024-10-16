@@ -58,7 +58,6 @@ class TestIncidenteFunctions(unittest.TestCase):
         self.mock_session.close.assert_called_once()
 
     @patch('app.database.create_engine')
-    @patch('app.database.config')
     def test_get_engine_with_database_url(self, mock_create_engine):
         database_url = "mysql+mysqlconnector://user:password@localhost/dbname"
         engine = get_engine(database_url)
