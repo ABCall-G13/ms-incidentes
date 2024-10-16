@@ -9,9 +9,6 @@ jobs:
   sonarcloud:
     name: SonarCloud
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python: [3.8, 3.9, 3.10]  # Define las versiones de Python que deseas probar
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
