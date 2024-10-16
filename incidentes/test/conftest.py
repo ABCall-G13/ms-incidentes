@@ -2,7 +2,7 @@
 from datetime import date
 import os
 import pytest
-from sqlmodel import create_engine, SQLModel, Session
+from sqlmodel import  Session
 from app.database import get_session, get_redis_client, get_engine, init_db
 from fakeredis import FakeRedis
 from fastapi.testclient import TestClient
