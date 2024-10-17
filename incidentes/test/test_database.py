@@ -1,3 +1,4 @@
+import json
 import unittest
 from unittest.mock import MagicMock, patch
 from datetime import  date
@@ -91,6 +92,42 @@ class TestIncidenteFunctions(unittest.TestCase):
         engine = get_engine()
         mock_create_engine.assert_called_once_with(database_url, echo=True)
         self.assertEqual(engine, mock_create_engine.return_value)
+        
+    def test_obtener_incidente_cache_existente_en_redis(self):
+        incidente_json = self.incidente.model_dump_json()
+        self.mock_redis.get.return_value = incidente_json
+
+        from app.database import obtener_incidente_cache
+        resultado = obtener_incidente_cache(self.incidente.id, self.mock_session, self.mock_redis)
+
+        self.mock_session.get.assert_not_called()
+        self.assertEqual(resultado, json.loads(incidente_json))
+        self.mock_redis.get.assert_called_once_with(f"incidente:{self.incidente.id}")
+
+    def test_obtener_incidente_cache_no_existente_en_redis(self):
+        self.mock_redis.get.return_value = None
+
+        self.mock_session.get.return_value = self.incidente
+
+        from app.database import obtener_incidente_cache
+        resultado = obtener_incidente_cache(self.incidente.id, self.mock_session, self.mock_redis)
+
+        self.mock_session.get.assert_called_once_with(Incidente, self.incidente.id)
+
+        self.mock_redis.set.assert_called_once_with(f"incidente:{self.incidente.id}", self.incidente.model_dump_json())
+        self.assertEqual(resultado, self.incidente.model_dump_json())
+
+    def test_obtener_incidente_cache_no_existente_en_redis_ni_db(self):
+        self.mock_redis.get.return_value = None
+        self.mock_session.get.return_value = None
+
+        from app.database import obtener_incidente_cache
+        resultado = obtener_incidente_cache(self.incidente.id, self.mock_session, self.mock_redis)
+
+        self.mock_session.get.assert_called_once_with(Incidente, self.incidente.id)
+
+        self.mock_redis.set.assert_not_called()
+        self.assertIsNone(resultado)
 
 
     

@@ -42,3 +42,15 @@ def create_incidente_cache(incidente: Incidente, session: Session, redis_client:
         raise Exception(f"Error al crear incidente: {str(e)}")
     finally:
         session.close()
+               
+def obtener_incidente_cache(incidente_id, session, redis_client):
+    incidente = redis_client.get(f"incidente:{incidente_id}")
+    if incidente:
+        return json.loads(incidente)
+    else:
+        incidente = session.get(Incidente, incidente_id)
+        if incidente:
+            incidente_json = incidente.model_dump_json()
+            redis_client.set(f"incidente:{incidente_id}", incidente_json)
+            return incidente_json
+        return None
