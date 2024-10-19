@@ -2,7 +2,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from app.models import Incidente
 from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache
-from sqlmodel import Session
+from sqlmodel import Session, select
 from redis import Redis
 
 router = APIRouter()
@@ -35,3 +35,18 @@ async def obtener_incidente(
         return incidente
     else:
         raise HTTPException(status_code=404, detail="Incidente no encontrado")
+    
+    
+# Nuevo endpoint para obtener todos los incidentes
+@router.get("/incidentes", response_model=list[Incidente])
+async def obtener_todos_los_incidentes(
+    session: Session = Depends(get_session)
+):
+    try:
+        # Consulta para obtener todos los incidentes
+        statement = select(Incidente)
+        results = session.exec(statement).all()  # Ejecutar la consulta
+        
+        return results  # Devuelve la lista de incidentes
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Error al obtener incidentes")
