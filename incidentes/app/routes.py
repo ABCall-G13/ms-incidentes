@@ -1,4 +1,6 @@
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from app.models import Canal, Categoria, Estado, Incidente, Prioridad
 from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache
 from sqlmodel import Session, select
@@ -60,22 +62,25 @@ async def obtener_valores_permitidos():
         "estado": [estado.value for estado in Estado]
     }
     
-    
+class SolucionRequest(BaseModel):
+    solucion: str    
 # Ruta para solucionar un incidente
 @router.put("/incidente/{incidente_id}/solucionar", response_model=Incidente)
 async def solucionar_incidente(
     incidente_id: int, 
-    solucion: str,  # Recibe el texto de la solución
+    event_data: SolucionRequest,
     session: Session = Depends(get_session)
 ):
+    
     incidente_existente = session.get(Incidente, incidente_id)
     
     if not incidente_existente:
         raise HTTPException(status_code=404, detail="Incidente no encontrado")
 
     # Actualizar la solución y cambiar el estado a "cerrado"
-    incidente_existente.solucion = solucion
+    incidente_existente.solucion = event_data.solucion
     incidente_existente.estado = "cerrado"
+    incidente_existente.fecha_cierre = date.today()
     session.add(incidente_existente)
     session.commit()
     session.refresh(incidente_existente)
