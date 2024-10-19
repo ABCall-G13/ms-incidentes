@@ -59,3 +59,44 @@ async def obtener_valores_permitidos():
         "canal": [canal.value for canal in Canal],
         "estado": [estado.value for estado in Estado]
     }
+    
+    
+# Ruta para solucionar un incidente
+@router.put("/incidente/{incidente_id}/solucionar", response_model=Incidente)
+async def solucionar_incidente(
+    incidente_id: int, 
+    solucion: str,  # Recibe el texto de la solución
+    session: Session = Depends(get_session)
+):
+    incidente_existente = session.get(Incidente, incidente_id)
+    
+    if not incidente_existente:
+        raise HTTPException(status_code=404, detail="Incidente no encontrado")
+
+    # Actualizar la solución y cambiar el estado a "cerrado"
+    incidente_existente.solucion = solucion
+    incidente_existente.estado = "cerrado"
+    session.add(incidente_existente)
+    session.commit()
+    session.refresh(incidente_existente)
+
+    return incidente_existente
+
+# Ruta para escalar un incidente
+@router.put("/incidente/{incidente_id}/escalar", response_model=Incidente)
+async def escalar_incidente(
+    incidente_id: int,
+    session: Session = Depends(get_session)
+):
+    incidente_existente = session.get(Incidente, incidente_id)
+    
+    if not incidente_existente:
+        raise HTTPException(status_code=404, detail="Incidente no encontrado")
+
+    # Cambiar el estado a "escalado"
+    incidente_existente.estado = "escalado"
+    session.add(incidente_existente)
+    session.commit()
+    session.refresh(incidente_existente)
+
+    return incidente_existente

@@ -22,6 +22,7 @@ class Canal(str, Enum):
 class Estado(str, Enum):
     abierto = "abierto"
     cerrado = "cerrado"
+    escalado = "escalado"
 
 class Incidente(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
