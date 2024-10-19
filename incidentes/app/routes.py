@@ -1,6 +1,5 @@
-from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
-from app.models import Incidente
+from app.models import Canal, Categoria, Estado, Incidente, Prioridad
 from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache
 from sqlmodel import Session, select
 from redis import Redis
@@ -50,3 +49,13 @@ async def obtener_todos_los_incidentes(
         return results  # Devuelve la lista de incidentes
     except Exception as e:
         raise HTTPException(status_code=500, detail="Error al obtener incidentes")
+    
+    
+@router.get("/incidentes/fields")
+async def obtener_valores_permitidos():
+    return {
+        "categoria": [categoria.value for categoria in Categoria],
+        "prioridad": [prioridad.value for prioridad in Prioridad],
+        "canal": [canal.value for canal in Canal],
+        "estado": [estado.value for estado in Estado]
+    }
