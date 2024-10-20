@@ -9,6 +9,8 @@ from fastapi.testclient import TestClient
 from app.models import Canal, Categoria, Estado, Incidente, Prioridad
 from main import app
 
+os.environ["TESTING"] = "True"
+
 @pytest.fixture(name="session")
 def session_fixture():
     engine = get_engine("sqlite:///test_database.db")
