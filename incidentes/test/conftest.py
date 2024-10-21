@@ -11,9 +11,9 @@ from main import app
 
 os.environ["TESTING"] = "True"
 
-@pytest.fixture(scope="session")
-def test_engine():
-    engine = create_engine("sqlite:///test_database.db")
+@pytest.fixture(name="session")
+def session_fixture():
+    engine = get_engine("sqlite:///test_database.db")
     init_db(engine)
     yield engine
     engine.dispose()
