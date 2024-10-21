@@ -9,9 +9,11 @@ import json
 
 router = APIRouter()
 
+
 @router.get("/")
 async def health():
     return {"status": "ok"}
+
 
 @router.post("/incidente", response_model=Incidente)
 async def crear_incidente(
@@ -23,12 +25,14 @@ async def crear_incidente(
     message_data = event_data.dict()
     try:
         incidente = create_incidente_cache(event_data, session, redis_client)
-        future = publisher.publish(topic_path, json.dumps(message_data).encode("utf-8"))
+        future = publisher.publish(
+            topic_path, json.dumps(message_data).encode("utf-8"))
         message_id = future.result()
         return incidente
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
-    
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/incidente/{incidente_id}", response_model=Incidente)
 async def obtener_incidente(
     incidente_id: int,
@@ -40,8 +44,8 @@ async def obtener_incidente(
         return incidente
     else:
         raise HTTPException(status_code=404, detail="Incidente no encontrado")
-    
-    
+
+
 # Nuevo endpoint para obtener todos los incidentes
 @router.get("/incidentes", response_model=list[Incidente])
 async def obtener_todos_los_incidentes(
@@ -51,12 +55,13 @@ async def obtener_todos_los_incidentes(
         # Consulta para obtener todos los incidentes
         statement = select(Incidente)
         results = session.exec(statement).all()  # Ejecutar la consulta
-        
+
         return results  # Devuelve la lista de incidentes
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Error al obtener incidentes")
-    
-    
+        raise HTTPException(
+            status_code=500, detail="Error al obtener incidentes")
+
+
 @router.get("/incidentes/fields")
 async def obtener_valores_permitidos():
     return {
@@ -65,19 +70,22 @@ async def obtener_valores_permitidos():
         "canal": [canal.value for canal in Canal],
         "estado": [estado.value for estado in Estado]
     }
-    
+
+
 class SolucionRequest(BaseModel):
-    solucion: str    
+    solucion: str
 # Ruta para solucionar un incidente
+
+
 @router.put("/incidente/{incidente_id}/solucionar", response_model=Incidente)
 async def solucionar_incidente(
-    incidente_id: int, 
+    incidente_id: int,
     event_data: SolucionRequest,
     session: Session = Depends(get_session)
 ):
-    
+
     incidente_existente = session.get(Incidente, incidente_id)
-    
+
     if not incidente_existente:
         raise HTTPException(status_code=404, detail="Incidente no encontrado")
 
@@ -92,13 +100,15 @@ async def solucionar_incidente(
     return incidente_existente
 
 # Ruta para escalar un incidente
+
+
 @router.put("/incidente/{incidente_id}/escalar", response_model=Incidente)
 async def escalar_incidente(
     incidente_id: int,
     session: Session = Depends(get_session)
 ):
     incidente_existente = session.get(Incidente, incidente_id)
-    
+
     if not incidente_existente:
         raise HTTPException(status_code=404, detail="Incidente no encontrado")
 

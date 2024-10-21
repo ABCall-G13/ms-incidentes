@@ -1,11 +1,13 @@
 import os
 from fastapi import FastAPI
 from app.routes import router as incidente_router
-from app.database import init_db, engine  # Importa la función init_db y el engine
+# Importa la función init_db y el engine
+from app.database import init_db, engine
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 app = FastAPI()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,9 +26,10 @@ app.include_router(incidente_router)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permite todos los orígenes, puedes restringirlo a ciertos dominios en producción
+    # Permite todos los orígenes, puedes restringirlo a ciertos dominios en producción
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Permite todos los métodos (GET, POST, PUT, DELETE, OPTIONS, etc.)
+    # Permite todos los métodos (GET, POST, PUT, DELETE, OPTIONS, etc.)
+    allow_methods=["*"],
     allow_headers=["*"],  # Permite todos los encabezados
 )
-

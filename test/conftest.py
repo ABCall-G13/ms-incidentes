@@ -11,6 +11,7 @@ from main import app
 
 os.environ["TESTING"] = "True"
 
+
 @pytest.fixture(name="session")
 def session_fixture():
     engine = get_engine("sqlite:///test_database.db")
@@ -20,14 +21,17 @@ def session_fixture():
     if os.path.exists("test_database.db"):
         os.remove("test_database.db")
 
+
 @pytest.fixture(name="session")
 def session_fixture(test_engine):
     with Session(test_engine) as session:
         yield session
 
+
 @pytest.fixture(name="redis_client")
 def redis_client_fixture():
     return FakeRedis()
+
 
 @pytest.fixture(name="client")
 def client_fixture(session: Session, redis_client: FakeRedis):
@@ -42,9 +46,10 @@ def client_fixture(session: Session, redis_client: FakeRedis):
 
     with TestClient(app) as client:
         yield client
-        
+
     app.dependency_overrides.clear()
-    
+
+
 @pytest.fixture
 def incidente():
     return Incidente(
