@@ -1,0 +1,7 @@
+{
+    "python.testing.pytestArgs": [
+        "incidentes"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
+}
