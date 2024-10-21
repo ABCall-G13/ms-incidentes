@@ -2,7 +2,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from app.models import Canal, Categoria, Estado, Incidente, Prioridad
-from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache, publisher, topic_path
+from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache
 from sqlmodel import Session, select
 from redis import Redis
 import json
@@ -22,12 +22,8 @@ async def crear_incidente(
     redis_client: Redis = Depends(get_redis_client)
 ):
     event_data.id = None
-    message_data = event_data.dict()
     try:
         incidente = create_incidente_cache(event_data, session, redis_client)
-        future = publisher.publish(
-            topic_path, json.dumps(message_data).encode("utf-8"))
-        message_id = future.result()
         return incidente
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
