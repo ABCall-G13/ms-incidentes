@@ -17,7 +17,7 @@ steps:
       - 'production'
       - '-t'
       - '$_AR_HOSTNAME/$_PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:$COMMIT_SHA'
-      - './incidentes'
+      - '.'
 
   - id: push
     name: 'gcr.io/cloud-builders/docker'
