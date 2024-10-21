@@ -50,6 +50,5 @@ steps:
       - '$_PROJECT_ID'
       - '--set-cloudsql-instances'
       - '$_CLOUDSQL_INSTANCE'
-      - '--vpc-connector=$_VPC_CONNECTOR'
 options:
   logging: CLOUD_LOGGING_ONLY
