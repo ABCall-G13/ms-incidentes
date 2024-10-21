@@ -2,8 +2,8 @@
 from datetime import date
 import os
 import pytest
-from sqlmodel import Session
-from app.database import get_session, get_redis_client, get_engine, init_db
+from sqlmodel import Session, create_engine
+from app.database import get_session, get_redis_client, init_db
 from fakeredis import FakeRedis
 from fastapi.testclient import TestClient
 from app.models import Canal, Categoria, Estado, Incidente, Prioridad
@@ -15,13 +15,15 @@ os.environ["TESTING"] = "True"
 def session_fixture():
     engine = get_engine("sqlite:///test_database.db")
     init_db(engine)
-    with Session(engine) as session:
-        yield session
-    
-    engine.dispose()    
-    # Clean up the database file after tests
+    yield engine
+    engine.dispose()
     if os.path.exists("test_database.db"):
         os.remove("test_database.db")
+
+@pytest.fixture(name="session")
+def session_fixture(test_engine):
+    with Session(test_engine) as session:
+        yield session
 
 @pytest.fixture(name="redis_client")
 def redis_client_fixture():
