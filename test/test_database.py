@@ -79,8 +79,7 @@ class TestIncidenteFunctions(unittest.TestCase):
         mock_config.DB_USER = "user"
         mock_config.DB_PASSWORD = "password"
         mock_config.DB_NAME = "dbname"
-        database_url = f"mysql+mysqlconnector://{mock_config.DB_USER}:{mock_config.DB_PASSWORD}@/{
-            mock_config.DB_NAME}?unix_socket={mock_config.DB_SOCKET_PATH_PRIMARY}"
+        database_url = f"mysql+mysqlconnector://{mock_config.DB_USER}:{mock_config.DB_PASSWORD}@/{mock_config.DB_NAME}"f"?unix_socket={mock_config.DB_SOCKET_PATH_PRIMARY}"
 
         engine = get_engine()
         mock_create_engine.assert_called_once_with(database_url, echo=True)
@@ -95,8 +94,7 @@ class TestIncidenteFunctions(unittest.TestCase):
         mock_config.DB_HOST = "localhost"
         mock_config.DB_PORT = "3306"
         mock_config.DB_NAME = "dbname"
-        database_url = f"mysql+mysqlconnector://{mock_config.DB_USER}:{mock_config.DB_PASSWORD}@{
-            mock_config.DB_HOST}:{mock_config.DB_PORT}/{mock_config.DB_NAME}"
+        database_url = f"mysql+mysqlconnector://{mock_config.DB_USER}:{mock_config.DB_PASSWORD}@{mock_config.DB_HOST}:{mock_config.DB_PORT}/{mock_config.DB_NAME}"
 
         engine = get_engine()
         mock_create_engine.assert_called_once_with(database_url, echo=True)
