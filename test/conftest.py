@@ -8,6 +8,7 @@ from fakeredis import FakeRedis
 from fastapi.testclient import TestClient
 from app.models import Incidente, Categoria, Canal, Prioridad, Estado
 from main import app
+from uuid import uuid4
 
 # Establece la variable de entorno para indicar que estamos en pruebas
 os.environ["TESTING"] = "True"
@@ -59,11 +60,12 @@ def incidente():
         id=1,
         cliente_id=123,
         description="Descripción del incidente",
-        categoria=Categoria.acceso,     # Usa el miembro del Enum
-        prioridad=Prioridad.alta,       # Usa el miembro del Enum
-        canal=Canal.llamada,            # Usa el miembro del Enum
-        estado=Estado.abierto,          # Usa el miembro del Enum
-        fecha_creacion= None,    # Usa un objeto date
+        categoria=Categoria.acceso,
+        prioridad=Prioridad.alta,
+        canal=Canal.llamada,
+        estado=Estado.abierto,
+        fecha_creacion=None,
         fecha_cierre=None,
-        solucion=None
+        solucion=None,
+        radicado=uuid4()
     )
