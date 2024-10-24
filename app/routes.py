@@ -1,8 +1,9 @@
 from datetime import date
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from app.models import Canal, Categoria, Estado, Incidente, Prioridad
-from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache
+from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache, obtener_incidente_por_radicado
 from sqlmodel import Session, select
 from redis import Redis
 import json
@@ -115,3 +116,16 @@ async def escalar_incidente(
     session.refresh(incidente_existente)
 
     return incidente_existente
+
+
+
+@router.get("/incidente/radicado/{radicado}", response_model=Incidente)
+async def obtener_incidente_por_radicado_endpoint(
+    radicado: UUID,
+    session: Session = Depends(get_session),
+    redis_client: Redis = Depends(get_redis_client)
+):
+    incidente = obtener_incidente_por_radicado(radicado, session, redis_client)
+    if not incidente:
+        raise HTTPException(status_code=404, detail="Incidente no encontrado")
+    return incidente

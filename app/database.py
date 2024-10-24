@@ -5,7 +5,7 @@ from redis import Redis
 from sqlmodel import Session, create_engine, SQLModel
 from app import config
 from app.models import Incidente
-
+from uuid import UUID, uuid4
 
 
 def get_engine(database_url: Optional[str] = None):
@@ -38,6 +38,8 @@ def get_redis_client() -> Redis:
 
 def create_incidente_cache(incidente: Incidente, session: Session, redis_client: Redis):
     try:
+        if not incidente.radicado:
+            incidente.radicado = uuid4()
         session.add(incidente)
         session.commit()
         session.refresh(incidente)
@@ -62,3 +64,22 @@ def obtener_incidente_cache(incidente_id, session, redis_client):
             redis_client.set(f"incidente:{incidente_id}", incidente_json)
             return incidente_json
         return None
+
+
+def obtener_incidente_por_radicado(radicado: UUID, session: Session, redis_client: Redis):
+    incidente = redis_client.get(f"incidente:radicado:{radicado}")
+    
+    if incidente:
+        incidente_data = json.loads(incidente)
+        return Incidente(**incidente_data) 
+    
+    else:
+        incidente = session.query(Incidente).filter_by(radicado=radicado).first()
+        
+        if incidente:
+            incidente_json = incidente.model_dump_json()
+            redis_client.set(f"incidente:radicado:{radicado}", incidente_json)
+            return incidente
+        return None
+    
+    

@@ -11,21 +11,21 @@ def test_health_check(client):
 
 # Prueba para crear un incidente
 def test_crear_incidente(client, session, incidente):
-    # Preparamos el payload del incidente a enviar en el POST
-  
+    # Convert UUID to string for JSON serialization
+    incidente_dict = incidente.dict()
+    incidente_dict["radicado"] = str(incidente_dict["radicado"])
 
-    response = client.post("/incidente", json=incidente.model_dump())
+    response = client.post("/incidente", json=incidente_dict)
 
-    # Verifica el código de estado y luego revisa la estructura JSON
-    assert response.status_code == 200  # Asegúrate de que el código de estado sea 200
+    assert response.status_code == 200
 
-    data = response.json()  # Obtén la respuesta en formato JSON
-    
-    # Validamos que los datos recibidos sean consistentes
-    assert isinstance(data, dict)  # Verifica que la respuesta sea un diccionario
+    data = response.json()
+    assert isinstance(data, dict)
     assert data["cliente_id"] == incidente.cliente_id
     assert data["description"] == incidente.description
     assert data["categoria"] == incidente.categoria.value
+    assert "radicado" in data
+    assert isinstance(data["radicado"], str)
     
 def test_obtener_incidente(client):
 
@@ -110,3 +110,18 @@ def test_escalar_incidente(client, session, incidente):
     # Validar que el estado del incidente ahora sea "escalado"
     data = response.json()
     assert data["estado"] == Estado.escalado.value
+    assert "radicado" in data
+    assert isinstance(data["radicado"], str)
+    
+def test_obtener_incidente_por_radicado(client, session, incidente):
+    session.add(incidente)
+    session.commit()
+
+    response = client.get(f"/incidente/radicado/{incidente.radicado}")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["cliente_id"] == incidente.cliente_id
+    assert data["description"] == incidente.description
+    assert data["categoria"] == incidente.categoria.value
+    assert data["radicado"] == str(incidente.radicado)
