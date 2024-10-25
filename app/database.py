@@ -25,7 +25,7 @@ def get_engine_replica(database_url: Optional[str] = None):
     if config.DB_SOCKET_PATH_REPLICA:
         database_url = f"mysql+mysqlconnector://{config.DB_USER_REPLICA}:{config.DB_PASSWORD_REPLICA}@/{config.DB_NAME_REPLICA}?unix_socket={config.DB_SOCKET_PATH_REPLICA}"
     else:
-        database_url = f"mysql+mysqlconnector://{config.DB_USER_REPLICA}:{config.DB_PASSWORD_REPLICA}@{config.DB_HOST_REPLICA}:{config.DB_PORT}/{config.DB_NAME_REPLICA}"
+        database_url = f"mysql+mysqlconnector://{config.DB_USER_REPLICA}:{config.DB_PASSWORD_REPLICA}@{config.DB_HOST_REPLICA}:{config.DB_PORT_REPLICA}/{config.DB_NAME_REPLICA}"
     
     return create_engine(database_url, echo=True)
 
