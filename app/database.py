@@ -31,23 +31,10 @@ def get_engine_replica(database_url: Optional[str] = None):
     return create_engine(database_url, echo=True)
 
 
-def get_pubsub_client():
-    """Initialize Pub/Sub client with error handling"""
-    try:
-        return pubsub_v1.PublisherClient()
-    except Exception as e:
-        if os.getenv('TESTING'):
-            # Return a dummy client for testing
-            return None
-        raise e
-
-# Initialize the publisher at module level with error handling
-publisher = get_pubsub_client()
-
 engine = get_engine()
 engine_replica = get_engine_replica()
 
-# publisher = pubsub_v1.PublisherClient()
+publisher = pubsub_v1.PublisherClient()
 topic_path = publisher.topic_path(config.PROJECT_ID, config.TOPIC_ID)
 
 
