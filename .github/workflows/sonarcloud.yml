@@ -24,6 +24,8 @@ jobs:
       - name: Install tox and any other packages
         run: pip install tox
       - name: Run tox
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/ms-incidentes/ms-incidentes/gha-creds-347094763d1c8bdc.json
         run: tox -e py
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
