@@ -7,6 +7,7 @@ from app import config
 from app.models import Incidente
 from uuid import UUID, uuid4
 from google.cloud import pubsub_v1
+import os
 
 
 def get_engine(database_url: Optional[str] = None):
