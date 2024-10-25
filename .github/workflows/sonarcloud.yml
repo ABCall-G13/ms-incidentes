@@ -11,7 +11,7 @@ jobs:
     name: SonarCloud
     runs-on: ubuntu-latest
     env:
-      GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/gcp-key.json
+      GOOGLE_APPLICATION_CREDENTIALS: $RUNNER_TEMP/gcp-key.json
     steps:
       - uses: actions/checkout@v2
         with:
