@@ -20,12 +20,16 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: '${{ secrets.GOOGLE_CREDENTIALS }}'
+          credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
       - name: Install tox and any other packages
         run: pip install tox
+      - name: Set up Google Application Credentials
+        run: echo "${{ secrets.GOOGLE_CREDENTIALS }}" > ./gcloud-credentials.json
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
       - name: Run tox
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS_FILE }}
+          GOOGLE_APPLICATION_CREDENTIALS: ./gcloud-credentials.json
         run: tox -e py
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
