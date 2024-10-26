@@ -34,8 +34,8 @@ def get_engine_replica(database_url: Optional[str] = None):
 engine = get_engine()
 engine_replica = get_engine_replica()
 
-publisher = pubsub_v1.PublisherClient()
-topic_path = publisher.topic_path(config.PROJECT_ID, config.TOPIC_ID)
+# publisher = pubsub_v1.PublisherClient()
+# topic_path = publisher.topic_path(config.PROJECT_ID, config.TOPIC_ID)
 
 
 def init_db(engine):
