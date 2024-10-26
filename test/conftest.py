@@ -23,6 +23,7 @@ def session_fixture():
     with Session(engine) as session:
         yield session
     engine.dispose()
+    engine_replica.dispose()
 
 # Fixture para el cliente de Redis falso (usado para cache simulado)
 @pytest.fixture(name="redis_client")
