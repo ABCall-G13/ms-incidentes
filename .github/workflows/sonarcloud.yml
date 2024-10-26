@@ -29,7 +29,9 @@ jobs:
       - name: Verify Credentials File
         run: ls -l /tmp/credentials.json && cat /tmp/credentials.json
       - name: Run tox
-        run: GOOGLE_APPLICATION_CREDENTIALS=/tmp/credentials.json tox -e py
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/credentials.json
+        run: tox -e py
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
