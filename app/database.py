@@ -7,8 +7,12 @@ from app import config
 from app.models import Incidente
 from uuid import UUID, uuid4
 from google.cloud import pubsub_v1
-import os
 from google.oauth2 import service_account
+import os
+
+# Explicitly set the GOOGLE_APPLICATION_CREDENTIALS if not already set
+if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/credentials.json"
 
 
 def get_engine(database_url: Optional[str] = None):
