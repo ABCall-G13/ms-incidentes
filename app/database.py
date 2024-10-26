@@ -16,8 +16,6 @@ if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
 
 
 def get_engine(database_url: Optional[str] = None):
-    if os.getenv("TESTING"):  # Add this condition
-        return get_engine("sqlite:///test_database.db")
     if database_url:
         return create_engine(database_url, echo=True)
     if config.DB_SOCKET_PATH_PRIMARY:
@@ -28,8 +26,6 @@ def get_engine(database_url: Optional[str] = None):
 
 
 def get_engine_replica(database_url: Optional[str] = None):
-    if os.getenv("TESTING"):  # Add this condition
-        return get_engine("sqlite:///test_database.db")
     if database_url:
         return create_engine(database_url, echo=True)
     if config.DB_SOCKET_PATH_REPLICA:
