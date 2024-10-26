@@ -1,4 +1,4 @@
-from app.database import get_engine, init_db, get_redis_client, get_session_replica
+from app.database import get_engine, init_db, get_redis_client, get_session_replica, get_session
 from app.models import Incidente, Categoria, Canal, Prioridad, Estado
 from sqlmodel import Session, SQLModel
 import pytest
