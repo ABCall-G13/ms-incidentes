@@ -24,11 +24,13 @@ jobs:
         with:
           credentials_json: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
           export_default_credentials: true
+      - name: Save Credentials to File
+        run: echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}" > /tmp/credentials.json
       - name: Set GOOGLE_APPLICATION_CREDENTIALS Environment Variable
-        run: echo "GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json" >> $GITHUB_ENV
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+        run: echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/credentials.json" >> $GITHUB_ENV
       - name: Run tox
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/credentials.json
         run: tox -e py
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
