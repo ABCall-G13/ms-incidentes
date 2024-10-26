@@ -22,6 +22,10 @@ def session_fixture():
     
     with Session(engine) as session:
         yield session
+
+    with Session(engine_replica) as session:
+        yield session
+        
     engine.dispose()
     engine_replica.dispose()
 
