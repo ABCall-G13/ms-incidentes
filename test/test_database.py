@@ -4,10 +4,10 @@ from unittest.mock import MagicMock, patch, call
 from datetime import date
 from sqlmodel import Session
 from app.models import Incidente, Categoria, Prioridad, Canal, Estado
-from app.database import create_incidente_cache, get_engine, obtener_incidente_por_radicado, publish_message, custom_serializer, obtener_incidente_cache, init_db, get_engine_replica
+from app.database import create_incidente_cache, get_engine, obtener_incidente_por_radicado, publish_message, custom_serializer, obtener_incidente_cache, init_db, get_engine_replica, get_session
 from uuid import uuid4, UUID
 from datetime import datetime
-import pytest
+import app.config
 
 class TestIncidenteFunctions(unittest.TestCase):
 
@@ -262,4 +262,98 @@ class TestIncidenteFunctions(unittest.TestCase):
             # Ensure no credentials or publisher are created in testing mode
             mock_credentials.assert_not_called()
             mock_publisher.assert_not_called()
-            
+    
+    @patch('app.database.create_engine')
+    @patch('app.database.config')
+    def test_get_engine_replica_with_socket_path(self, mock_config, mock_create_engine):
+        mock_config.DB_SOCKET_PATH_REPLICA = "/cloudsql/project:region:instance"
+        mock_config.DB_USER_REPLICA = "replica_user"
+        mock_config.DB_PASSWORD_REPLICA = "replica_password"
+        mock_config.DB_NAME_REPLICA = "replica_db"
+        
+        database_url = f"mysql+mysqlconnector://{mock_config.DB_USER_REPLICA}:{mock_config.DB_PASSWORD_REPLICA}@/{mock_config.DB_NAME_REPLICA}?unix_socket={mock_config.DB_SOCKET_PATH_REPLICA}"
+        engine = get_engine_replica()
+        
+        mock_create_engine.assert_called_once_with(database_url, echo=True)
+        self.assertEqual(engine, mock_create_engine.return_value)
+
+    def test_create_incidente_cache_with_existing_radicado(self):
+        self.incidente.radicado = uuid4()  # Assign an existing radicado
+        result = create_incidente_cache(
+            self.incidente, self.mock_session, self.mock_redis
+        )
+        self.mock_session.commit.assert_called_once()
+        self.assertEqual(result.radicado, self.incidente.radicado)
+
+    def test_create_incidente_cache_redis_failure(self):
+        # Simulate Redis failure by making set raise an exception
+        self.mock_redis.set.side_effect = Exception("Redis failure")
+        with self.assertRaises(Exception) as context:
+            create_incidente_cache(self.incidente, self.mock_session, self.mock_redis)
+        self.assertIn("Redis failure", str(context.exception))
+        self.mock_session.rollback.assert_called_once()
+
+    # Additional Tests for `obtener_incidente_cache`
+    def test_obtener_incidente_cache_not_in_redis_or_db(self):
+        self.mock_redis.get.return_value = None  # Not in Redis
+        self.mock_session.get.return_value = None  # Not in DB
+
+        result = obtener_incidente_cache(
+            self.incidente.id, self.mock_session, self.mock_redis
+        )
+        self.assertIsNone(result)
+
+    # Additional Tests for `publish_message`
+    @patch('app.database.config.is_testing', return_value=False)
+    @patch('app.database.pubsub_v1.PublisherClient')
+    @patch('app.database.service_account.Credentials.from_service_account_file')
+    def test_publish_message_non_testing(self, mock_credentials, mock_publisher, mock_is_testing):
+        # Set GOOGLE_APPLICATION_CREDENTIALS to ensure it exists for the test
+        app.config.GOOGLE_APPLICATION_CREDENTIALS = "service-account.json"
+
+        # Define the expected topic path and mock topic_path method
+        mock_publisher_instance = mock_publisher.return_value
+        topic_path = f"projects/{app.config.PROJECT_ID}/topics/{app.config.TOPIC_ID}"
+        mock_publisher_instance.topic_path.return_value = topic_path
+
+        data = {"message": "Test Message"}
+        publish_message(data)
+
+        # Assert calls with the updated mock
+        mock_credentials.assert_called_once_with("service-account.json")
+        mock_publisher.assert_called_once()
+        mock_publisher_instance.publish.assert_called_once_with(
+            topic_path, json.dumps(data, default=custom_serializer).encode("utf-8")
+        )
+
+    # Additional Tests for `custom_serializer`
+    def test_custom_serializer_with_nested_types(self):
+        nested_data = {
+            "date": datetime(2023, 10, 26),
+            "uuid": uuid4(),
+            "list": [1, 2, 3],
+        }
+        serialized_data = json.dumps(nested_data, default=custom_serializer)
+        self.assertIn(nested_data["date"].isoformat(), serialized_data)
+        self.assertIn(str(nested_data["uuid"]), serialized_data)
+
+    # Additional Tests for `get_engine` and `get_engine_replica`
+    @patch('app.database.create_engine')
+    def test_get_engine_invalid_url(self, mock_create_engine):
+        mock_create_engine.side_effect = Exception("Invalid URL")
+        with self.assertRaises(Exception):
+            get_engine("invalid_database_url")
+
+
+    @patch('app.database.create_engine')
+    def test_get_engine_replica_invalid_url(self, mock_create_engine):
+        mock_create_engine.side_effect = Exception("Invalid URL")
+        with self.assertRaises(Exception):
+            get_engine_replica("invalid_database_url")
+
+    @patch('app.database.SQLModel.metadata.create_all')
+    def test_init_db_primary_and_replica(self, mock_create_all):
+        engine = MagicMock()
+        engine_replica = MagicMock()
+        init_db(engine, engine_replica)
+        mock_create_all.assert_has_calls([call(engine), call(engine_replica)], any_order=True)
