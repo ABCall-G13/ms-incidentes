@@ -71,7 +71,7 @@ def create_incidente_cache(incidente: Incidente, session: Session, redis_client:
         session.commit()
         session.refresh(incidente)
         if config.is_testing() or config.is_local():
-            session_replica = get_session_replica()
+            session_replica = next(get_session_replica())
             session_replica.add(incidente)
             session_replica.commit()
 
