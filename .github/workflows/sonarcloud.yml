@@ -24,8 +24,8 @@ jobs:
         with:
           credentials_json: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
           export_default_credentials: true
-      - name: Save Credentials to File
-        run: echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}" > /tmp/credentials.json
+      - name: Save and Decode Google Cloud Credentials
+        run: echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}" | base64 --decode > /tmp/credentials.json
       - name: Set GOOGLE_APPLICATION_CREDENTIALS Environment Variable
         run: echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/credentials.json" >> $GITHUB_ENV
       - name: Run tox
