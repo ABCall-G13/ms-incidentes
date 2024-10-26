@@ -3,11 +3,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from app.models import Canal, Categoria, Estado, Incidente, Prioridad
-from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache, obtener_incidente_por_radicado, publisher, topic_path, get_session_replica
+from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache, obtener_incidente_por_radicado, publisher, topic_path, get_session_replica, custom_serializer
 from sqlmodel import Session, select
 from redis import Redis
 import json
-from datetime import date, datetime #
+
 
 router = APIRouter()
 
@@ -17,12 +17,7 @@ async def health():
     return {"status": "ok"}
 
 
-def custom_serializer(obj): #
-    if isinstance(obj, (datetime, date)):
-        return obj.isoformat()
-    if isinstance(obj, UUID):
-        return str(obj)
-    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
 
 @router.post("/incidente", response_model=Incidente) #
 async def crear_incidente(
@@ -33,13 +28,9 @@ async def crear_incidente(
     event_data.id = None
     try:
         incidente = create_incidente_cache(event_data, session, redis_client)
-        message_data = incidente.model_dump()  # Adjusted to use model_dump()
-        
-        # Serialize using the custom serializer function
-        serialized_message = json.dumps(message_data, default=custom_serializer).encode("utf-8")
-        
-        # Send to Pub/Sub
-        # future = publisher.publish(topic_path, serialized_message)
+        message_data = incidente.model_dump()
+        message_data = json.dumps(message_data, default=custom_serializer).encode("utf-8")
+        future = publisher.publish(topic_path, message_data)
         
         return incidente
     except Exception as e:

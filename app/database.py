@@ -9,6 +9,7 @@ from uuid import UUID, uuid4
 from google.cloud import pubsub_v1
 from google.oauth2 import service_account
 import os
+from datetime import date, datetime
 
 # Explicitly set the GOOGLE_APPLICATION_CREDENTIALS if not already set
 if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
@@ -115,4 +116,10 @@ def obtener_incidente_por_radicado(radicado: UUID, session: Session, redis_clien
             return incidente
         return None
     
+def custom_serializer(obj): #
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    if isinstance(obj, UUID):
+        return str(obj)
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
     
