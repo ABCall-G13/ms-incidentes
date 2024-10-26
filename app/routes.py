@@ -22,12 +22,11 @@ async def health():
 async def crear_incidente(
     event_data: Incidente,
     session: Session = Depends(get_session),
-    redis_client: Redis = Depends(get_redis_client),
-    session_replica: Optional[Session] = Depends(get_session_replica) if is_testing() or is_local() else None
+    redis_client: Redis = Depends(get_redis_client)
 ):
     event_data.id = None
     try:
-        incidente = create_incidente_cache(event_data, session, redis_client, session_replica=session_replica)
+        incidente = create_incidente_cache(event_data, session, redis_client)
         publish_message(incidente.model_dump())
         return incidente
     except Exception as e:

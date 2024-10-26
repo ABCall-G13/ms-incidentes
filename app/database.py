@@ -62,7 +62,7 @@ def get_redis_client() -> Redis:
     return redis_client
 
 
-def create_incidente_cache(incidente: Incidente, session: Session, redis_client: Redis, session_replica: Optional[Session] = None):
+def create_incidente_cache(incidente: Incidente, session: Session, redis_client: Redis):
     try:
         if not incidente.radicado:
             incidente.radicado = uuid4()
@@ -70,9 +70,9 @@ def create_incidente_cache(incidente: Incidente, session: Session, redis_client:
         session.commit()
         session.refresh(incidente)
         if config.is_testing() or config.is_local():
-            if session_replica:
-                session_replica.add(incidente)
-                session_replica.commit()
+            session_replica = get_session_replica()
+            session_replica.add(incidente)
+            session_replica.commit()
 
         incidente_json = incidente.model_dump_json()
         redis_client.set(f"incidente:{incidente.id}", incidente_json)
