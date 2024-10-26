@@ -13,7 +13,7 @@ services:
     networks:
       - backend
     ports:
-      - '${DB_PORT_PRIMARY}:3306'
+      - '0.0.0.0:3306:${DB_PORT_PRIMARY}'
     env_file:
       - .env
     environment:
@@ -26,7 +26,7 @@ services:
     networks:
       - backend
     ports:
-      - '${DB_PORT_REPLICA}:3307'
+      - '0.0.0.0:3307:${DB_PORT_REPLICA}'
     env_file:
       - .env
     environment:

@@ -1,7 +1,8 @@
 # incidentes/test/test_routes.py
 from datetime import date
 from fastapi import status
-from app.models import Incidente, Estado
+from app.models import Incidente, Categoria, Canal, Estado, Prioridad
+from uuid import uuid4
 
 # Prueba para verificar que la API está funcionando correctamente
 def test_health_check(client):
@@ -125,3 +126,74 @@ def test_obtener_incidente_por_radicado(client, session, incidente):
     assert data["description"] == incidente.description
     assert data["categoria"] == incidente.categoria.value
     assert data["radicado"] == str(incidente.radicado)
+
+def test_escalar_incidente(client, session):
+    # Set up an incident in the database to escalate
+    incidente = Incidente(
+        cliente_id=123,
+        description="Descripción del incidente",
+        categoria=Categoria.acceso,
+        prioridad=Prioridad.alta,
+        canal=Canal.llamada,
+        estado=Estado.abierto,
+        fecha_creacion=date.today()
+    )
+    session.add(incidente)
+    session.commit()
+    session.refresh(incidente)
+
+    # Perform the PUT request to escalate the incident
+    response = client.put(f"/incidente/{incidente.id}/escalar")
+    assert response.status_code == 200
+
+    # Fetch the escalated incident and validate the state change
+    data = response.json()
+    assert data["estado"] == Estado.escalado.value
+    assert data["id"] == incidente.id
+    assert "radicado" in data
+    assert isinstance(data["radicado"], str)
+
+    # Ensure the database reflects the escalation
+    escalated_incident = session.get(Incidente, incidente.id)
+    assert escalated_incident.estado == Estado.escalado
+
+def test_obtener_incidente_not_found(client, mocker):
+    # Simulate `None` return for a missing incident
+    mocker.patch("app.database.obtener_incidente_cache", return_value=None)
+
+    response = client.get("/incidente/1")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Incidente no encontrado"
+
+
+def test_obtener_todos_los_incidentes_internal_server_error(client, mocker):
+    mocker.patch("sqlmodel.Session.exec", side_effect=Exception("Database error"))
+
+    response = client.get("/incidentes")
+    assert response.status_code == 500
+    assert "Error al obtener incidentes" in response.json()["detail"]
+
+
+def test_obtener_incidente_por_radicado_not_found(client, mocker):
+    radicado = uuid4()
+    mocker.patch("app.database.obtener_incidente_por_radicado", return_value=None)
+
+    response = client.get(f"/incidente/radicado/{radicado}")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Incidente no encontrado"
+
+
+def test_solucionar_incidente_not_found(client, mocker):
+    mocker.patch("sqlmodel.Session.get", return_value=None)
+
+    response = client.put("/incidente/1/solucionar", json={"solucion": "Fixed issue"})
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Incidente no encontrado"
+
+
+def test_escalar_incidente_not_found(client, mocker):
+    mocker.patch("sqlmodel.Session.get", return_value=None)
+
+    response = client.put("/incidente/1/escalar")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Incidente no encontrado"
