@@ -8,7 +8,6 @@ from app.models import Incidente
 from uuid import UUID, uuid4
 from google.cloud import pubsub_v1
 from google.oauth2 import service_account
-import os
 from datetime import date, datetime
 
 def get_engine(database_url: Optional[str] = None):
