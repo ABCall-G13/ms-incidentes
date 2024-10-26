@@ -7,6 +7,7 @@ from app.database import create_incidente_cache, get_session, get_redis_client, 
 from sqlmodel import Session, select
 from redis import Redis
 import json
+from datetime import date, datetime #
 
 router = APIRouter()
 
@@ -16,7 +17,14 @@ async def health():
     return {"status": "ok"}
 
 
-@router.post("/incidente", response_model=Incidente)
+def custom_serializer(obj): #
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    if isinstance(obj, UUID):
+        return str(obj)
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+@router.post("/incidente", response_model=Incidente) #
 async def crear_incidente(
     event_data: Incidente,
     session: Session = Depends(get_session),
@@ -25,15 +33,14 @@ async def crear_incidente(
     event_data.id = None
     try:
         incidente = create_incidente_cache(event_data, session, redis_client)
-        message_data = incidente.dict()
-        # print("TEST")
-        message_data['radicado'] = str(message_data['radicado'])
-        message_data = json.dumps(message_data).encode("utf-8")
-        print(message_data)
-        # future = publisher.publish(topic_path, json.dumps(message_data).encode("utf-8"))
-        # print("FUTURE")
-        # print(future)
-        # message_id = future.result()
+        message_data = incidente.model_dump()  # Adjusted to use model_dump()
+        
+        # Serialize using the custom serializer function
+        serialized_message = json.dumps(message_data, default=custom_serializer).encode("utf-8")
+        
+        # Send to Pub/Sub
+        # future = publisher.publish(topic_path, serialized_message)
+        
         return incidente
     except Exception as e:
         print("Error creating incident:", str(e))
