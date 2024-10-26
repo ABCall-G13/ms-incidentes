@@ -17,8 +17,6 @@ async def health():
     return {"status": "ok"}
 
 
-
-
 @router.post("/incidente", response_model=Incidente) #
 async def crear_incidente(
     event_data: Incidente,
@@ -31,7 +29,7 @@ async def crear_incidente(
         message_data = incidente.model_dump()
         message_data = json.dumps(message_data, default=custom_serializer).encode("utf-8")
         future = publisher.publish(topic_path, message_data)
-        
+        message_id = future.result()
         return incidente
     except Exception as e:
         print("Error creating incident:", str(e))
