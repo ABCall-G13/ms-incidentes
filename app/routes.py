@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from app.models import Canal, Categoria, Estado, Incidente, Prioridad
-from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache, obtener_incidente_por_radicado, publisher, topic_path, get_session_replica, custom_serializer
+from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache, obtener_incidente_por_radicado, get_session_replica, publish_message
 from sqlmodel import Session, select
 from redis import Redis
 import json
@@ -26,10 +26,7 @@ async def crear_incidente(
     event_data.id = None
     try:
         incidente = create_incidente_cache(event_data, session, redis_client)
-        message_data = incidente.model_dump()
-        message_data = json.dumps(message_data, default=custom_serializer).encode("utf-8")
-        future = publisher.publish(topic_path, message_data)
-        message_id = future.result()
+        publish_message(incidente.model_dump())
         return incidente
     except Exception as e:
         print("Error creating incident:", str(e))

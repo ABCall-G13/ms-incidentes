@@ -45,11 +45,6 @@ credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 if not credentials_path:
     raise EnvironmentError("The GOOGLE_APPLICATION_CREDENTIALS environment variable is not set.")
 
-# Initialize PublisherClient with explicit credentials
-credentials = service_account.Credentials.from_service_account_file(credentials_path)
-publisher = pubsub_v1.PublisherClient(credentials=credentials)
-topic_path = publisher.topic_path(config.PROJECT_ID, config.TOPIC_ID)
-
 
 def init_db(engine, engine_replica):
     SQLModel.metadata.create_all(engine)
@@ -116,10 +111,20 @@ def obtener_incidente_por_radicado(radicado: UUID, session: Session, redis_clien
             return incidente
         return None
     
+
 def custom_serializer(obj): #
     if isinstance(obj, (datetime, date)):
         return obj.isoformat()
     if isinstance(obj, UUID):
         return str(obj)
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+
+def publish_message(data):
+    if not config.is_testing():
+        credentials = service_account.Credentials.from_service_account_file(config.GOOGLE_APPLICATION_CREDENTIALS)
+        publisher = pubsub_v1.PublisherClient(credentials=credentials)
+        topic_path = publisher.topic_path(config.PROJECT_ID, config.TOPIC_ID)
+        message_data = json.dumps(data, default=custom_serializer).encode("utf-8")
+        publisher.publish(topic_path, message_data)
     

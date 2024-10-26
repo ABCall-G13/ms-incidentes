@@ -2,6 +2,13 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
+def is_testing():
+    return os.getenv("TESTING", "").lower() == "true"
+
+def is_local():
+    return os.getenv("LOCAL_ENV", "").lower() == "true"
+
 DB_USER = os.getenv("DB_USER_PRIMARY", "prueba")
 DB_PASSWORD = os.getenv("DB_PASSWORD_PRIMARY", "prueba")
 DB_HOST = os.getenv("DB_HOST_PRIMARY", "localhost")
