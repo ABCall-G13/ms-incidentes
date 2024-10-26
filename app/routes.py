@@ -28,10 +28,10 @@ async def crear_incidente(
         message_data = incidente.dict()
         print("TEST")
         print(json.dumps(message_data).encode("utf-8"))
-        future = publisher.publish(topic_path, json.dumps(message_data).encode("utf-8"))
+        # future = publisher.publish(topic_path, json.dumps(message_data).encode("utf-8"))
         print("FUTURE")
-        print(future)
-        message_id = future.result()
+        # print(future)
+        # message_id = future.result()
         return incidente
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
