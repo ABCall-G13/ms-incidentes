@@ -50,7 +50,7 @@ publisher = pubsub_v1.PublisherClient(credentials=credentials)
 topic_path = publisher.topic_path(config.PROJECT_ID, config.TOPIC_ID)
 
 
-def init_db(engine):
+def init_db(engine, engine_replica):
     SQLModel.metadata.create_all(engine)
     SQLModel.metadata.create_all(engine_replica)
 

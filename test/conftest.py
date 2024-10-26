@@ -17,7 +17,8 @@ os.environ["TESTING"] = "True"
 @pytest.fixture(name="session")
 def session_fixture():
     engine = get_engine("sqlite:///test_database.db")
-    init_db(engine)
+    engine_replica = get_engine("sqlite:///test_database.db")
+    init_db(engine, engine_replica)
     
     with Session(engine) as session:
         yield session
