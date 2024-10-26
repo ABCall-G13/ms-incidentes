@@ -9,28 +9,21 @@ from fastapi.testclient import TestClient
 from app.models import Incidente, Categoria, Canal, Prioridad, Estado
 from main import app
 from uuid import uuid4
-import tempfile
+
 # Establece la variable de entorno para indicar que estamos en pruebas
 os.environ["TESTING"] = "True"
 
 # Fixture para la sesión de la base de datos
 @pytest.fixture(name="session")
 def session_fixture():
-    with tempfile.NamedTemporaryFile(suffix=".db") as db_file:
-        database_url = f"sqlite:///{db_file.name}"
-        engine = get_engine(database_url)
-        engine_replica = get_engine(database_url)
-
-        # Initialize tables in both engines
-        init_db(engine, engine_replica)
-
-        # Create a session on the primary engine for testing
-        with Session(engine) as session:
-            yield session
-
-        # Dispose of engines to clean up
-        engine.dispose()
-        engine_replica.dispose()
+    engine = get_engine("sqlite:///:memory:")
+    engine_replica = get_engine("sqlite:///:memory:")
+    init_db(engine, engine_replica)
+    
+    with Session(engine) as session:
+        yield session
+    engine.dispose()
+    engine_replica.dispose()
 
 # Fixture para el cliente de Redis falso (usado para cache simulado)
 @pytest.fixture(name="redis_client")
