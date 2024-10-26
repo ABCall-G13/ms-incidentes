@@ -25,7 +25,7 @@ async def crear_incidente(
     event_data.id = None
     try:
         incidente = create_incidente_cache(event_data, session, redis_client)
-        message_data = incidente.model_dump()
+        message_data = incidente.dict()
         print("TEST")
         print(json.dumps(message_data).encode("utf-8"))
         future = publisher.publish(topic_path, json.dumps(message_data).encode("utf-8"))
