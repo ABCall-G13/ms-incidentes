@@ -34,6 +34,7 @@ async def crear_incidente(
         # message_id = future.result()
         return incidente
     except Exception as e:
+        print("Error creating incident:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
