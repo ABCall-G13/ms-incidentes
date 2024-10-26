@@ -16,16 +16,13 @@ os.environ["TESTING"] = "True"
 # Fixture para la sesión de la base de datos
 @pytest.fixture(name="session")
 def session_fixture():
-    engine = get_engine("sqlite:///test_database.db")
-    engine_replica = get_engine("sqlite:///test_database.db")
+    engine = get_engine("sqlite:///:memory:")
+    engine_replica = get_engine("sqlite:///:memory:")
     init_db(engine, engine_replica)
     
     with Session(engine) as session:
         yield session
     engine.dispose()
-    # Eliminar la base de datos de prueba al final de las pruebas
-    if os.path.exists("test_database.db"):
-        os.remove("test_database.db")
 
 # Fixture para el cliente de Redis falso (usado para cache simulado)
 @pytest.fixture(name="redis_client")
