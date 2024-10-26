@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from app.models import Incidente, Categoria, Canal, Prioridad, Estado
 from main import app
 from uuid import uuid4
-
+from sqlmodel import Session, create_engine, SQLModel
 # Establece la variable de entorno para indicar que estamos en pruebas
 os.environ["TESTING"] = "True"
 
@@ -22,6 +22,8 @@ def session_fixture():
     
     # Initialize the databases immediately to ensure schema is created
     init_db(engine, engine_replica)
+    SQLModel.metadata.create_all(bind=engine)
+    SQLModel.metadata.create_all(bind=engine_replica)
     
     with Session(engine) as session:
         yield session
@@ -43,7 +45,7 @@ def client_fixture(session: Session, redis_client: FakeRedis):
         yield session
 
     def _get_test_session_replica():
-        yield  # Use the same SQLite session as the replica
+        yield session 
 
     # Sobrescribe la dependencia del cliente Redis con el cliente simulado
     def _get_test_redis_client():
