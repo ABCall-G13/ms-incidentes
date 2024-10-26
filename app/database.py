@@ -63,6 +63,7 @@ def get_redis_client() -> Redis:
 
 
 def create_incidente_cache(incidente: Incidente, session: Session, redis_client: Redis):
+    session_replica = None
     try:
         if not incidente.radicado:
             incidente.radicado = uuid4()
