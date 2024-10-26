@@ -1,11 +1,12 @@
 from datetime import date
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from app.models import Canal, Categoria, Estado, Incidente, Prioridad
-from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache
+from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache, obtener_incidente_por_radicado, get_session_replica, publish_message
 from sqlmodel import Session, select
 from redis import Redis
-import json
+
 
 router = APIRouter()
 
@@ -15,7 +16,7 @@ async def health():
     return {"status": "ok"}
 
 
-@router.post("/incidente", response_model=Incidente)
+@router.post("/incidente", response_model=Incidente) #
 async def crear_incidente(
     event_data: Incidente,
     session: Session = Depends(get_session),
@@ -24,15 +25,17 @@ async def crear_incidente(
     event_data.id = None
     try:
         incidente = create_incidente_cache(event_data, session, redis_client)
+        publish_message(incidente.model_dump())
         return incidente
     except Exception as e:
+        print("Error creating incident:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/incidente/{incidente_id}", response_model=Incidente)
 async def obtener_incidente(
     incidente_id: int,
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session_replica),
     redis_client: Redis = Depends(get_redis_client)
 ):
     incidente = obtener_incidente_cache(incidente_id, session, redis_client)
@@ -45,7 +48,7 @@ async def obtener_incidente(
 # Nuevo endpoint para obtener todos los incidentes
 @router.get("/incidentes", response_model=list[Incidente])
 async def obtener_todos_los_incidentes(
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session_replica)
 ):
     try:
         # Consulta para obtener todos los incidentes
@@ -96,8 +99,6 @@ async def solucionar_incidente(
     return incidente_existente
 
 # Ruta para escalar un incidente
-
-
 @router.put("/incidente/{incidente_id}/escalar", response_model=Incidente)
 async def escalar_incidente(
     incidente_id: int,
@@ -115,3 +116,15 @@ async def escalar_incidente(
     session.refresh(incidente_existente)
 
     return incidente_existente
+
+
+@router.get("/incidente/radicado/{radicado}", response_model=Incidente)
+async def obtener_incidente_por_radicado_endpoint(
+    radicado: UUID,
+    session: Session = Depends(get_session_replica),
+    redis_client: Redis = Depends(get_redis_client)
+):
+    incidente = obtener_incidente_por_radicado(radicado, session, redis_client)
+    if not incidente:
+        raise HTTPException(status_code=404, detail="Incidente no encontrado")
+    return incidente
