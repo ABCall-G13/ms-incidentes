@@ -40,11 +40,6 @@ def get_engine_replica(database_url: Optional[str] = None):
 engine = get_engine()
 engine_replica = get_engine_replica()
 
-# Specify the path to the service account key file
-credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-if not credentials_path:
-    raise EnvironmentError("The GOOGLE_APPLICATION_CREDENTIALS environment variable is not set.")
-
 
 def init_db(engine, engine_replica):
     SQLModel.metadata.create_all(engine)
@@ -57,9 +52,11 @@ def get_session() -> Generator[Session, None, None]:
     with Session(engine) as session:
         yield session
 
+
 def get_session_replica() -> Generator[Session, None, None]:
     with Session(engine_replica) as session:
         yield session
+
 
 def get_redis_client() -> Redis:
     return redis_client
