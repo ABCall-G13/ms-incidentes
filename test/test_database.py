@@ -4,11 +4,9 @@ from unittest.mock import MagicMock, patch, call
 from datetime import date
 from sqlmodel import Session
 from app.models import Incidente, Categoria, Prioridad, Canal, Estado
-from app.database import create_incidente_cache, get_engine, get_session, get_redis_client, obtener_incidente_por_radicado, publish_message, custom_serializer, obtener_incidente_cache, init_db
+from app.database import create_incidente_cache, get_engine, obtener_incidente_por_radicado, publish_message, custom_serializer, obtener_incidente_cache, init_db
 from uuid import uuid4, UUID
 from datetime import datetime
-from app import config
-import os
 
 class TestIncidenteFunctions(unittest.TestCase):
 
@@ -135,7 +133,6 @@ class TestIncidenteFunctions(unittest.TestCase):
         self.assertEqual(resultado, self.incidente.model_dump_json())
 
     def test_create_incidente_cache_without_radicado(self):
-        # Crear un incidente sin radicado
         incidente_sin_radicado = Incidente(
             id=1,
             cliente_id=123,
@@ -222,7 +219,6 @@ class TestIncidenteFunctions(unittest.TestCase):
         
         init_db(engine, engine_replica)
         
-        # Ensure that `create_all` was called for both the main and replica engines
         mock_create_all.assert_has_calls([call(engine), call(engine_replica)], any_order=True)
 
     def test_obtener_incidente_cache_database_failure(self):
@@ -250,21 +246,3 @@ class TestIncidenteFunctions(unittest.TestCase):
     def test_custom_serializer_with_invalid_type(self):
         with self.assertRaises(TypeError):
             custom_serializer({"unsupported": "data"})
-
-    # @patch('app.database.config.is_testing', return_value=False)
-    # @patch('app.database.service_account.Credentials.from_service_account_file')
-    # @patch('app.database.pubsub_v1.PublisherClient')
-    # def test_publish_message_not_in_testing(self, mock_publisher, mock_credentials, mock_is_testing):
-    #     # Prepare test data
-    #     data = {"message": "Test Message"}
-        
-    #     # Call the function
-    #     publish_message(data)
-        
-    #     # Assertions to ensure message publishing was attempted
-    #     mock_credentials.assert_called_once_with(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
-    #     mock_publisher.assert_called_once()
-    #     topic_path = mock_publisher.return_value.topic_path(config.PROJECT_ID, config.TOPIC_ID)
-    #     mock_publisher.return_value.publish.assert_called_once_with(
-    #         topic_path, json.dumps(data, default=custom_serializer).encode("utf-8")
-    #     )

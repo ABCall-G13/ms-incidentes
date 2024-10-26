@@ -157,26 +157,6 @@ def test_escalar_incidente(client, session):
     escalated_incident = session.get(Incidente, incidente.id)
     assert escalated_incident.estado == Estado.escalado
 
-# def test_crear_incidente_internal_server_error(client, mocker):
-#     incidente_data = {
-#         "description": "Test incident",
-#         "categoria": "acceso",
-#         "prioridad": "alta",
-#         "canal": "llamada",
-#         "cliente_id": 1,
-#         "estado": "abierto",
-#         "fecha_creacion": None,
-#         "fecha_cierre": None,
-#         "solucion": None
-#     }
-#     # Simulate an exception in `create_incidente_cache`
-#     mocker.patch("app.database.create_incidente_cache", side_effect=Exception("Test error"))
-
-#     response = client.post("/incidente", json=incidente_data)
-#     assert response.status_code == 500
-#     assert "Test error" in response.json()["detail"]
-
-
 def test_obtener_incidente_not_found(client, mocker):
     # Simulate `None` return for a missing incident
     mocker.patch("app.database.obtener_incidente_cache", return_value=None)
@@ -187,7 +167,6 @@ def test_obtener_incidente_not_found(client, mocker):
 
 
 def test_obtener_todos_los_incidentes_internal_server_error(client, mocker):
-    # Simulate an exception in retrieving all incidents
     mocker.patch("sqlmodel.Session.exec", side_effect=Exception("Database error"))
 
     response = client.get("/incidentes")
@@ -197,7 +176,6 @@ def test_obtener_todos_los_incidentes_internal_server_error(client, mocker):
 
 def test_obtener_incidente_por_radicado_not_found(client, mocker):
     radicado = uuid4()
-    # Simulate `None` return for a missing incident by radicado
     mocker.patch("app.database.obtener_incidente_por_radicado", return_value=None)
 
     response = client.get(f"/incidente/radicado/{radicado}")
@@ -206,7 +184,6 @@ def test_obtener_incidente_por_radicado_not_found(client, mocker):
 
 
 def test_solucionar_incidente_not_found(client, mocker):
-    # Simulate `None` return for a missing incident in solve endpoint
     mocker.patch("sqlmodel.Session.get", return_value=None)
 
     response = client.put("/incidente/1/solucionar", json={"solucion": "Fixed issue"})
@@ -215,7 +192,6 @@ def test_solucionar_incidente_not_found(client, mocker):
 
 
 def test_escalar_incidente_not_found(client, mocker):
-    # Simulate `None` return for a missing incident in escalate endpoint
     mocker.patch("sqlmodel.Session.get", return_value=None)
 
     response = client.put("/incidente/1/escalar")
