@@ -70,12 +70,6 @@ def create_incidente_cache(incidente: Incidente, session: Session, redis_client:
         session.add(incidente)
         session.commit()
         session.refresh(incidente)
-        session.expunge(incidente)
-        
-        if config.is_testing() or config.is_local():
-            session_replica = next(get_session_replica())
-            session_replica.add(incidente)
-            session_replica.commit()
 
         incidente_json = incidente.model_dump_json()
         redis_client.set(f"incidente:{incidente.id}", incidente_json)

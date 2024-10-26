@@ -3,7 +3,7 @@ from datetime import date
 import os
 import pytest
 from sqlmodel import Session
-from app.database import get_engine, get_session, get_redis_client, init_db, get_session_replica
+from app.database import get_engine, get_session, get_redis_client, init_db, get_session_replica, get_engine_replica
 from fakeredis import FakeRedis
 from fastapi.testclient import TestClient
 from app.models import Incidente, Categoria, Canal, Prioridad, Estado
@@ -17,13 +17,11 @@ os.environ["TESTING"] = "True"
 @pytest.fixture(name="session")
 def session_fixture():
     # Create engines for SQLite in-memory databases
-    engine = get_engine("sqlite:///:memory:?check_same_thread=False")
-    engine_replica = get_engine("sqlite:///:memory:?check_same_thread=False")
+    engine = get_engine("sqlite:///test_database.db")
+    engine_replica = get_engine_replica("sqlite:///test_database.db")
     
     # Initialize the databases immediately to ensure schema is created
     init_db(engine, engine_replica)
-    SQLModel.metadata.create_all(bind=engine)
-    SQLModel.metadata.create_all(bind=engine_replica)
     
     with Session(engine) as session:
         yield session
@@ -31,6 +29,9 @@ def session_fixture():
     # Dispose of the engines
     engine.dispose()
     engine_replica.dispose()
+    
+    if os.path.exists("test_database.db"):
+        os.remove("test_database.db")
 
 # Fixture para el cliente de Redis falso (usado para cache simulado)
 @pytest.fixture(name="redis_client")
@@ -40,29 +41,29 @@ def redis_client_fixture():
 # Fixture para el cliente de pruebas FastAPI
 @pytest.fixture(name="client")
 def client_fixture(session: Session, redis_client: FakeRedis):
-    # Sobrescribe la dependencia de la sesión con la sesión de prueba
+    # Override the session dependency to use the test session
     def _get_test_session():
         yield session
 
+    # Override the replica session to also use the primary test session for simplicity
     def _get_test_session_replica():
         yield session 
 
-    # Sobrescribe la dependencia del cliente Redis con el cliente simulado
+    # Override the Redis client dependency
     def _get_test_redis_client():
         return redis_client
 
-    # Aplicar las dependencias sobrescritas
+    # Apply dependency overrides
     app.dependency_overrides[get_session] = _get_test_session
-    app.dependency_overrides[get_session_replica] = _get_test_session_replica
+    app.dependency_overrides[get_session_replica] = _get_test_session_replica  # Ensure this is overridden for tests
     app.dependency_overrides[get_redis_client] = _get_test_redis_client
 
-    # Utiliza el cliente de pruebas para hacer solicitudes a la API
+    # Use the TestClient to make API requests
     with TestClient(app) as client:
         yield client
 
-    # Limpia las dependencias sobrescritas después de las pruebas
+    # Clear overrides after tests
     app.dependency_overrides.clear()
-
 # Fixture para crear un objeto de incidente de ejemplo
 @pytest.fixture
 def incidente():
