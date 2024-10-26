@@ -36,11 +36,12 @@ engine = get_engine()
 engine_replica = get_engine_replica()
 
 # Specify the path to the service account key file
-credentials = service_account.Credentials.from_service_account_file(
-    os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-)
+credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+if not credentials_path:
+    raise EnvironmentError("The GOOGLE_APPLICATION_CREDENTIALS environment variable is not set.")
 
-# Initialize PublisherClient with the credentials
+# Initialize PublisherClient with explicit credentials
+credentials = service_account.Credentials.from_service_account_file(credentials_path)
 publisher = pubsub_v1.PublisherClient(credentials=credentials)
 topic_path = publisher.topic_path(config.PROJECT_ID, config.TOPIC_ID)
 
