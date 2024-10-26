@@ -16,16 +16,17 @@ os.environ["TESTING"] = "True"
 # Fixture para la sesión de la base de datos
 @pytest.fixture(name="session")
 def session_fixture():
-    # Create engines with threading options set for SQLite
+    # Create engines for SQLite in-memory databases
     engine = get_engine("sqlite:///:memory:?check_same_thread=False")
     engine_replica = get_engine("sqlite:///:memory:?check_same_thread=False")
     
-    # Initialize the databases
+    # Initialize the databases immediately to ensure schema is created
+    init_db(engine, engine_replica)
+    
     with Session(engine) as session:
-        init_db(engine, engine_replica)
         yield session
 
-    # Clean up
+    # Dispose of the engines
     engine.dispose()
     engine_replica.dispose()
 
