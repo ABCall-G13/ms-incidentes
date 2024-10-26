@@ -3,7 +3,7 @@ from datetime import date
 import os
 import pytest
 from sqlmodel import Session
-from app.database import get_engine, get_session, get_redis_client, init_db
+from app.database import get_engine, get_session, get_redis_client, init_db, get_session_replica
 from fakeredis import FakeRedis
 from fastapi.testclient import TestClient
 from app.models import Incidente, Categoria, Canal, Prioridad, Estado
@@ -39,12 +39,16 @@ def client_fixture(session: Session, redis_client: FakeRedis):
     def _get_test_session():
         yield session
 
+    def _get_test_session_replica():
+        yield session  # Use the same SQLite session as the replica
+
     # Sobrescribe la dependencia del cliente Redis con el cliente simulado
     def _get_test_redis_client():
         return redis_client
 
     # Aplicar las dependencias sobrescritas
     app.dependency_overrides[get_session] = _get_test_session
+    app.dependency_overrides[get_session_replica] = _get_test_session_replica
     app.dependency_overrides[get_redis_client] = _get_test_redis_client
 
     # Utiliza el cliente de pruebas para hacer solicitudes a la API
