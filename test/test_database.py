@@ -4,9 +4,10 @@ from unittest.mock import MagicMock, patch, call
 from datetime import date
 from sqlmodel import Session
 from app.models import Incidente, Categoria, Prioridad, Canal, Estado
-from app.database import create_incidente_cache, get_engine, obtener_incidente_por_radicado, publish_message, custom_serializer, obtener_incidente_cache, init_db
+from app.database import create_incidente_cache, get_engine, obtener_incidente_por_radicado, publish_message, custom_serializer, obtener_incidente_cache, init_db, get_engine_replica
 from uuid import uuid4, UUID
 from datetime import datetime
+import pytest
 
 class TestIncidenteFunctions(unittest.TestCase):
 
@@ -246,3 +247,46 @@ class TestIncidenteFunctions(unittest.TestCase):
     def test_custom_serializer_with_invalid_type(self):
         with self.assertRaises(TypeError):
             custom_serializer({"unsupported": "data"})
+
+    # def test_publish_message_in_production(self):
+    #     # Data to be published, including a datetime and UUID to test custom serialization
+    #     data = {
+    #         "id": uuid4(),
+    #         "timestamp": datetime.now(),
+    #         "message": "Test message"
+    #     }
+        
+    #     with patch("app.database.config.is_testing", return_value=False), \
+    #         patch("app.database.config.GOOGLE_APPLICATION_CREDENTIALS", "mocked_service_account.json"), \
+    #         patch("app.database.service_account.Credentials.from_service_account_file") as mock_credentials, \
+    #         patch("app.database.pubsub_v1.PublisherClient") as mock_publisher:
+            
+    #         # Mock the topic path and the publish function
+    #         mock_publisher_instance = MagicMock()
+    #         mock_publisher.return_value = mock_publisher_instance
+    #         mock_publisher_instance.topic_path.return_value = "projects/test_project/topics/test_topic"
+            
+    #         # Call the function
+    #         publish_message(data)
+            
+    #         # Check if the topic path was generated correctly
+    #         mock_publisher_instance.topic_path.assert_called_once_with("abcall-438123", "incidentes-db-sync")
+            
+    #         # Ensure the publish method was called with serialized message data
+    #         expected_message_data = json.dumps(data, default=lambda o: o.isoformat() if isinstance(o, datetime) else str(o)).encode("utf-8")
+    #         mock_publisher_instance.publish.assert_called_once_with("projects/test_project/topics/test_topic", expected_message_data)
+
+    def test_publish_message_in_testing(self):
+        # Mock the config to simulate testing environment
+        with patch("app.database.config.is_testing", return_value=True), \
+             patch("app.database.service_account.Credentials.from_service_account_file") as mock_credentials, \
+             patch("app.database.pubsub_v1.PublisherClient") as mock_publisher:
+            
+            data = {"message": "Test message"}
+            
+            # Call the function
+            publish_message(data)
+            
+            # Ensure no credentials or publisher are created in testing mode
+            mock_credentials.assert_not_called()
+            mock_publisher.assert_not_called()
