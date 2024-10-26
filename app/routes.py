@@ -27,10 +27,10 @@ async def crear_incidente(
         incidente = create_incidente_cache(event_data, session, redis_client)
         message_data = incidente.model_dump()
         print("TEST")
-        print(json.dumps(message_data).encode("utf-8"), flush=True)
+        print(json.dumps(message_data).encode("utf-8"))
         future = publisher.publish(topic_path, json.dumps(message_data).encode("utf-8"))
         print("FUTURE")
-        print(future, flush = True)
+        print(future)
         message_id = future.result()
         return incidente
     except Exception as e:
