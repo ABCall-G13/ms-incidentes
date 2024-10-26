@@ -4,9 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from app.models import Canal, Categoria, Estado, Incidente, Prioridad
 from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache, obtener_incidente_por_radicado, get_session_replica, publish_message
+from app.config import is_testing, is_local
 from sqlmodel import Session, select
 from redis import Redis
-import json
+from typing import Optional
 
 
 router = APIRouter()
@@ -21,11 +22,12 @@ async def health():
 async def crear_incidente(
     event_data: Incidente,
     session: Session = Depends(get_session),
-    redis_client: Redis = Depends(get_redis_client)
+    redis_client: Redis = Depends(get_redis_client),
+    session_replica: Optional[Session] = Depends(get_session_replica) if is_testing() or is_local() else None
 ):
     event_data.id = None
     try:
-        incidente = create_incidente_cache(event_data, session, redis_client)
+        incidente = create_incidente_cache(event_data, session, redis_client, session_replica=session_replica)
         publish_message(incidente.model_dump())
         return incidente
     except Exception as e:
