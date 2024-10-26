@@ -11,11 +11,6 @@ from google.oauth2 import service_account
 import os
 from datetime import date, datetime
 
-# Explicitly set the GOOGLE_APPLICATION_CREDENTIALS if not already set
-if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/credentials.json"
-
-
 def get_engine(database_url: Optional[str] = None):
     if database_url:
         return create_engine(database_url, echo=True)

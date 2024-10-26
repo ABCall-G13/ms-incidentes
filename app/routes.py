@@ -4,10 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from app.models import Canal, Categoria, Estado, Incidente, Prioridad
 from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache, obtener_incidente_por_radicado, get_session_replica, publish_message
-from app.config import is_testing, is_local
 from sqlmodel import Session, select
 from redis import Redis
-from typing import Optional
 
 
 router = APIRouter()
