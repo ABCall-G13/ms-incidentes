@@ -1,12 +1,13 @@
 import json
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, call
 from datetime import date
 from sqlmodel import Session
 from app.models import Incidente, Categoria, Prioridad, Canal, Estado
-from app.database import create_incidente_cache, get_engine, get_redis_client, obtener_incidente_por_radicado
+from app.database import create_incidente_cache, get_engine, get_redis_client, obtener_incidente_por_radicado, publish_message, custom_serializer, obtener_incidente_cache, init_db
 from uuid import uuid4, UUID
-
+from datetime import datetime
+from app import config
 
 class TestIncidenteFunctions(unittest.TestCase):
 
@@ -192,5 +193,54 @@ class TestIncidenteFunctions(unittest.TestCase):
         self.assertEqual(resultado.id, self.incidente.id)
         self.assertEqual(resultado.radicado, self.incidente.radicado.__str__())
 
+    # def test_publish_message_not_in_testing(self):
+    #     with patch('app.database.config.is_testing', return_value=False), \
+    #          patch('app.database.service_account.Credentials.from_service_account_file') as mock_credentials, \
+    #          patch('app.database.pubsub_v1.PublisherClient') as mock_publisher:
+            
+    #         data = {"message": "Test Message"}
+    #         publish_message(data)
+            
+    #         # Assertions to check that message was published
+    #         mock_credentials.assert_called_once_with(config.GOOGLE_APPLICATION_CREDENTIALS)
+    #         mock_publisher.assert_called_once()
+    #         mock_publisher.return_value.publish.assert_called_once()
+    
+    def test_publish_message_in_testing(self):
+        with patch('app.database.config.is_testing', return_value=True), \
+             patch('app.database.service_account.Credentials.from_service_account_file') as mock_credentials, \
+             patch('app.database.pubsub_v1.PublisherClient') as mock_publisher:
+            
+            data = {"message": "Test Message"}
+            publish_message(data)
+            
+            # Check that no publishing actions were taken
+            mock_credentials.assert_not_called()
+            mock_publisher.assert_not_called()
 
+    def test_custom_serializer_with_supported_types(self):
+        date_obj = datetime(2023, 10, 26)
+        uuid_obj = uuid4()
 
+        self.assertEqual(custom_serializer(date_obj), date_obj.isoformat())
+        self.assertEqual(custom_serializer(uuid_obj), str(uuid_obj))
+
+    def test_custom_serializer_with_unsupported_type(self):
+        with self.assertRaises(TypeError):
+            custom_serializer({"unsupported": "type"})
+
+    @patch('app.database.SQLModel.metadata.create_all')
+    def test_init_db(self, mock_create_all):
+        engine = MagicMock()
+        engine_replica = MagicMock()
+        
+        init_db(engine, engine_replica)
+        
+        # Ensure that `create_all` was called for both the main and replica engines
+        mock_create_all.assert_has_calls([call(engine), call(engine_replica)], any_order=True)
+
+    # def test_obtener_incidente_cache_database_failure(self):
+    #     with patch.object(self.mock_session, 'get', side_effect=Exception("Database failure")) as mock_get:
+    #         result = obtener_incidente_cache(self.incidente.id, self.mock_session, self.mock_redis)
+    #         mock_get.assert_called_once()
+    #         self.assertIsNone(result)  # Expect None on database failure
