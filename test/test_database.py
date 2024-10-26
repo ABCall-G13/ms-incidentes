@@ -4,10 +4,11 @@ from unittest.mock import MagicMock, patch, call
 from datetime import date
 from sqlmodel import Session
 from app.models import Incidente, Categoria, Prioridad, Canal, Estado
-from app.database import create_incidente_cache, get_engine, obtener_incidente_por_radicado, publish_message, custom_serializer, obtener_incidente_cache, init_db, get_engine_replica
+from app.database import get_redis_client, create_incidente_cache, get_engine, obtener_incidente_por_radicado, publish_message, custom_serializer, obtener_incidente_cache, init_db, get_engine_replica, get_session
 from uuid import uuid4, UUID
 from datetime import datetime
-import pytest
+from redis import Redis
+from contextlib import contextmanager
 
 class TestIncidenteFunctions(unittest.TestCase):
 
@@ -262,4 +263,17 @@ class TestIncidenteFunctions(unittest.TestCase):
             # Ensure no credentials or publisher are created in testing mode
             mock_credentials.assert_not_called()
             mock_publisher.assert_not_called()
-            
+    
+    @patch('app.database.create_engine')
+    @patch('app.database.config')
+    def test_get_engine_replica_with_socket_path(self, mock_config, mock_create_engine):
+        mock_config.DB_SOCKET_PATH_REPLICA = "/cloudsql/project:region:instance"
+        mock_config.DB_USER_REPLICA = "replica_user"
+        mock_config.DB_PASSWORD_REPLICA = "replica_password"
+        mock_config.DB_NAME_REPLICA = "replica_db"
+        
+        database_url = f"mysql+mysqlconnector://{mock_config.DB_USER_REPLICA}:{mock_config.DB_PASSWORD_REPLICA}@/{mock_config.DB_NAME_REPLICA}?unix_socket={mock_config.DB_SOCKET_PATH_REPLICA}"
+        engine = get_engine_replica()
+        
+        mock_create_engine.assert_called_once_with(database_url, echo=True)
+        self.assertEqual(engine, mock_create_engine.return_value)
