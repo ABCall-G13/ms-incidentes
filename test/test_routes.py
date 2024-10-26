@@ -1,7 +1,7 @@
 # incidentes/test/test_routes.py
 from datetime import date
 from fastapi import status
-from app.models import Incidente, Estado
+from app.models import Incidente, Categoria, Canal, Estado, Prioridad
 
 # Prueba para verificar que la API está funcionando correctamente
 def test_health_check(client):
@@ -125,3 +125,33 @@ def test_obtener_incidente_por_radicado(client, session, incidente):
     assert data["description"] == incidente.description
     assert data["categoria"] == incidente.categoria.value
     assert data["radicado"] == str(incidente.radicado)
+
+def test_escalar_incidente(client, session):
+    # Set up an incident in the database to escalate
+    incidente = Incidente(
+        cliente_id=123,
+        description="Descripción del incidente",
+        categoria=Categoria.acceso,
+        prioridad=Prioridad.alta,
+        canal=Canal.llamada,
+        estado=Estado.abierto,
+        fecha_creacion=date.today()
+    )
+    session.add(incidente)
+    session.commit()
+    session.refresh(incidente)
+
+    # Perform the PUT request to escalate the incident
+    response = client.put(f"/incidente/{incidente.id}/escalar")
+    assert response.status_code == 200
+
+    # Fetch the escalated incident and validate the state change
+    data = response.json()
+    assert data["estado"] == Estado.escalado.value
+    assert data["id"] == incidente.id
+    assert "radicado" in data
+    assert isinstance(data["radicado"], str)
+
+    # Ensure the database reflects the escalation
+    escalated_incident = session.get(Incidente, incidente.id)
+    assert escalated_incident.estado == Estado.escalado

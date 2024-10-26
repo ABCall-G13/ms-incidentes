@@ -8,6 +8,7 @@ from app.database import create_incidente_cache, get_engine, get_session, get_re
 from uuid import uuid4, UUID
 from datetime import datetime
 from app import config
+import os
 
 class TestIncidenteFunctions(unittest.TestCase):
 
@@ -175,8 +176,6 @@ class TestIncidenteFunctions(unittest.TestCase):
         self.assertIsNone(resultado)
 
         self.mock_redis.get.assert_called_once_with(f"incidente:radicado:{radicado_inexistente}")
-
-        
         
     def test_obtener_incidente_por_radicado_existente_en_redis(self):
         radicado_existente = uuid4()
@@ -226,60 +225,46 @@ class TestIncidenteFunctions(unittest.TestCase):
         # Ensure that `create_all` was called for both the main and replica engines
         mock_create_all.assert_has_calls([call(engine), call(engine_replica)], any_order=True)
 
-    # @patch('app.database.config')
-    # def test_get_engine_without_url(self, mock_config):
-    #     # Set up config values for primary database
-    #     mock_config.DB_SOCKET_PATH_PRIMARY = "/cloudsql/socket_path"
-    #     mock_config.DB_USER = "user"
-    #     mock_config.DB_PASSWORD = "password"
-    #     mock_config.DB_NAME = "dbname"
-
-    #     # Call get_engine without database_url
-    #     engine = get_engine()
-    #     self.assertIn("user:password@/", engine.url)
-
-    # def test_get_session_yields_session(self):
-    #     # Mock the engine and get_session to yield sessions
-    #     with patch('app.database.engine') as mock_engine:
-    #         with patch('app.database.Session', return_value=self.mock_session):
-    #             generator = get_session()
-    #             session = next(generator)
-    #             self.assertIsInstance(session, Session)
-
-    # def test_get_redis_client(self):
-    #     # Verify Redis client is created with correct configuration
-    #     client = get_redis_client()
-    #     self.assertEqual(client, self.mock_redis)
-    #     self.mock_redis.__init__.assert_called_once_with(host=config.REDIS_HOST, port=config.REDIS_PORT)
-
     def test_obtener_incidente_cache_database_failure(self):
-        # Simulate Redis cache miss and database retrieval failure
         self.mock_redis.get.return_value = None
         self.mock_session.get.side_effect = Exception("Database failure")
 
-        # Execute test
         with self.assertRaises(Exception):
             obtener_incidente_cache(self.incidente.id, self.mock_session, self.mock_redis)
         self.mock_redis.get.assert_called_once_with(f"incidente:{self.incidente.id}")
 
     def test_obtener_incidente_por_radicado_miss_in_redis_and_database(self):
-        # Configure Redis and database to return None (cache miss and DB miss)
         self.mock_redis.get.return_value = None
         self.mock_session.query().filter_by().first.return_value = None
 
-        # Call function and verify it returns None
         result = obtener_incidente_por_radicado(self.incidente.radicado, self.mock_session, self.mock_redis)
         self.assertIsNone(result)
         self.mock_redis.get.assert_called_once_with(f"incidente:radicado:{self.incidente.radicado}")
 
     def test_custom_serializer_with_datetime_and_uuid(self):
-        # Test that custom serializer works correctly
         now = datetime.now()
         id = uuid4()
         self.assertEqual(custom_serializer(now), now.isoformat())
         self.assertEqual(custom_serializer(id), str(id))
 
     def test_custom_serializer_with_invalid_type(self):
-        # Test that an unsupported type raises a TypeError
         with self.assertRaises(TypeError):
             custom_serializer({"unsupported": "data"})
+
+    # @patch('app.database.config.is_testing', return_value=False)
+    # @patch('app.database.service_account.Credentials.from_service_account_file')
+    # @patch('app.database.pubsub_v1.PublisherClient')
+    # def test_publish_message_not_in_testing(self, mock_publisher, mock_credentials, mock_is_testing):
+    #     # Prepare test data
+    #     data = {"message": "Test Message"}
+        
+    #     # Call the function
+    #     publish_message(data)
+        
+    #     # Assertions to ensure message publishing was attempted
+    #     mock_credentials.assert_called_once_with(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+    #     mock_publisher.assert_called_once()
+    #     topic_path = mock_publisher.return_value.topic_path(config.PROJECT_ID, config.TOPIC_ID)
+    #     mock_publisher.return_value.publish.assert_called_once_with(
+    #         topic_path, json.dumps(data, default=custom_serializer).encode("utf-8")
+    #     )
