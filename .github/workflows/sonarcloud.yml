@@ -26,8 +26,12 @@ jobs:
           export_default_credentials: true
       - name: Decode and Save Google Cloud Credentials
         run: echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}" | base64 --decode > /tmp/credentials.json
+      - name: Check if credentials file is created
+        run: ls -l /tmp/credentials.json && cat /tmp/credentials.json
       - name: Set GOOGLE_APPLICATION_CREDENTIALS Environment Variable
         run: echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/credentials.json" >> $GITHUB_ENV
+      - name: Confirm Environment Variable
+        run: echo $GOOGLE_APPLICATION_CREDENTIALS
       - name: Run tox
         env:
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/credentials.json
