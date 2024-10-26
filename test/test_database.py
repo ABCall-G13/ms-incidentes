@@ -262,3 +262,4 @@ class TestIncidenteFunctions(unittest.TestCase):
             # Ensure no credentials or publisher are created in testing mode
             mock_credentials.assert_not_called()
             mock_publisher.assert_not_called()
+            
