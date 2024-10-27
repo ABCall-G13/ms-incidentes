@@ -131,7 +131,7 @@ async def obtener_incidente_por_radicado_endpoint(
 
 
 @router.post("/soluciones", response_model=ProblemaComun)
-def registrar_cliente(problema: ProblemaComun, session: Session = Depends(get_session)):
+def registrar_problema_comun(problema: ProblemaComun, session: Session = Depends(get_session)):
     try:
         return create_problema_comun(problema, session)
     except ValueError as e:
@@ -139,8 +139,8 @@ def registrar_cliente(problema: ProblemaComun, session: Session = Depends(get_se
 
 
 @router.get("/soluciones", response_model=List[ProblemaComun])
-def listar_clientes(session: Session = Depends(get_session)):
-        try:
-            return obtener_problemas_comunes(session)
-        except ValueError as e:
-            raise HTTPException(status_code=500, detail=str(e))
+def listar_problemas_comunes(session: Session = Depends(get_session)):
+    try:
+        return obtener_problemas_comunes(session)
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e))

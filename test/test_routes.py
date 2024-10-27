@@ -239,3 +239,25 @@ def test_listar_problemas_comunes(client, session):
 
     found = any(item["id"] == problema.id for item in data)
     assert found
+
+
+def test_registrar_problema_comun_value_error(client, mocker):
+    problema_data = {
+        "description": "Problem description",
+        "categoria": "acceso",
+        "solucion": "Suggested solution"
+    }
+
+    mocker.patch("app.routes.create_problema_comun", side_effect=ValueError("Test error"))
+
+    response = client.post("/soluciones", json=problema_data)
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.json() == {"detail": "Test error"}
+
+
+def test_listar_problemas_comunes_value_error(client, mocker):
+    mocker.patch("app.routes.obtener_problemas_comunes", side_effect=ValueError("Test error"))
+
+    response = client.get("/soluciones")
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.json() == {"detail": "Test error"}
