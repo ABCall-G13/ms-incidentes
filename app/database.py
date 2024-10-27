@@ -4,7 +4,7 @@ from typing import Generator, Optional
 from redis import Redis
 from sqlmodel import Session, create_engine, SQLModel
 from app import config
-from app.models import Incidente
+from app.models import Incidente, ProblemaComun
 from uuid import UUID, uuid4
 from google.cloud import pubsub_v1
 from google.oauth2 import service_account
@@ -125,3 +125,19 @@ def publish_message(data):
         message_data = json.dumps(data, default=custom_serializer).encode("utf-8")
         publisher.publish(topic_path, message_data)
     
+
+def create_problema_comun(problema: ProblemaComun, session: Session):
+    try:
+        session.add(problema)
+        session.commit()
+        session.refresh(problema)
+        return problema
+    except Exception as e:
+        session.rollback()
+        raise Exception(f"Error al crear problema común: {str(e)}")
+    finally:
+        session.close()
+
+
+def obtener_problemas_comunes(session: Session):
+    return session.query(ProblemaComun).all()

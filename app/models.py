@@ -42,3 +42,10 @@ class Incidente(SQLModel, table=True):
     fecha_cierre: Optional[date] = None
     solucion: Optional[str] = Field(sa_column=Column(TEXT))
     radicado: UUID = Field(default_factory=uuid4, index=True)
+ 
+
+class ProblemaComun(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    description: str = Field(sa_column=Column(TEXT))
+    categoria: Categoria
+    solucion: str = Field(sa_column=Column(TEXT))

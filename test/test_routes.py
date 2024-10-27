@@ -1,7 +1,7 @@
 # incidentes/test/test_routes.py
 from datetime import date
 from fastapi import status
-from app.models import Incidente, Categoria, Canal, Estado, Prioridad
+from app.models import Incidente, Categoria, Canal, Estado, Prioridad, ProblemaComun
 from uuid import uuid4
 
 # Prueba para verificar que la API está funcionando correctamente
@@ -197,3 +197,67 @@ def test_escalar_incidente_not_found(client, mocker):
     response = client.put("/incidente/1/escalar")
     assert response.status_code == 404
     assert response.json()["detail"] == "Incidente no encontrado"
+
+
+def test_registrar_problema_comun(client, session):
+    problema_data = {
+        "description": "Problem description",
+        "categoria": Categoria.acceso.value,
+        "solucion": "Suggested solution"
+    }
+
+    response = client.post("/soluciones", json=problema_data)
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+    assert data["description"] == problema_data["description"]
+    assert data["categoria"] == problema_data["categoria"]
+    assert data["solucion"] == problema_data["solucion"]
+
+    problema = session.query(ProblemaComun).filter_by(id=data["id"]).first()
+    assert problema is not None
+    assert problema.description == problema_data["description"]
+    assert problema.categoria == Categoria(problema_data["categoria"])
+    assert problema.solucion == problema_data["solucion"]
+
+
+def test_listar_problemas_comunes(client, session):
+    problema = ProblemaComun(
+        description="Sample problem",
+        categoria=Categoria.funcionamiento,
+        solucion="Sample solution"
+    )
+    session.add(problema)
+    session.commit()
+
+    response = client.get("/soluciones")
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) > 0
+
+    found = any(item["id"] == problema.id for item in data)
+    assert found
+
+
+def test_registrar_problema_comun_value_error(client, mocker):
+    problema_data = {
+        "description": "Problem description",
+        "categoria": "acceso",
+        "solucion": "Suggested solution"
+    }
+
+    mocker.patch("app.routes.create_problema_comun", side_effect=ValueError("Test error"))
+
+    response = client.post("/soluciones", json=problema_data)
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.json() == {"detail": "Test error"}
+
+
+def test_listar_problemas_comunes_value_error(client, mocker):
+    mocker.patch("app.routes.obtener_problemas_comunes", side_effect=ValueError("Test error"))
+
+    response = client.get("/soluciones")
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.json() == {"detail": "Test error"}
