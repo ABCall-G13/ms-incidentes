@@ -3,10 +3,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from app.models import Canal, Categoria, Estado, Incidente, Prioridad
-from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache, obtener_incidente_por_radicado, get_session_replica, publish_message
+from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache, obtener_incidente_por_radicado, get_session_replica, publish_message, create_problema_comun, obtener_problemas_comunes, ProblemaComun
 from sqlmodel import Session, select
 from redis import Redis
-
+from typing import List
 
 router = APIRouter()
 
@@ -128,3 +128,19 @@ async def obtener_incidente_por_radicado_endpoint(
     if not incidente:
         raise HTTPException(status_code=404, detail="Incidente no encontrado")
     return incidente
+
+
+@router.post("/soluciones", response_model=ProblemaComun)
+def registrar_cliente(problema: ProblemaComun, session: Session = Depends(get_session)):
+    try:
+        return create_problema_comun(problema, session)
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/soluciones", response_model=List[ProblemaComun])
+def listar_clientes(session: Session = Depends(get_session)):
+        try:
+            return obtener_problemas_comunes(session)
+        except ValueError as e:
+            raise HTTPException(status_code=500, detail=str(e))
