@@ -303,29 +303,6 @@ class TestIncidenteFunctions(unittest.TestCase):
         )
         self.assertIsNone(result)
 
-    # Additional Tests for `publish_message`
-    @patch('app.database.config.is_testing', return_value=False)
-    @patch('app.database.pubsub_v1.PublisherClient')
-    @patch('app.database.service_account.Credentials.from_service_account_file')
-    def test_publish_message_non_testing(self, mock_credentials, mock_publisher, mock_is_testing):
-        # Set GOOGLE_APPLICATION_CREDENTIALS to ensure it exists for the test
-        app.config.GOOGLE_APPLICATION_CREDENTIALS = "service-account.json"
-
-        # Define the expected topic path and mock topic_path method
-        mock_publisher_instance = mock_publisher.return_value
-        topic_path = f"projects/{app.config.PROJECT_ID}/topics/{app.config.TOPIC_ID}"
-        mock_publisher_instance.topic_path.return_value = topic_path
-
-        data = {"message": "Test Message"}
-        publish_message(data)
-
-        # Assert calls with the updated mock
-        mock_credentials.assert_called_once_with("service-account.json")
-        mock_publisher.assert_called_once()
-        mock_publisher_instance.publish.assert_called_once_with(
-            topic_path, json.dumps(data, default=custom_serializer).encode("utf-8")
-        )
-
     # Additional Tests for `custom_serializer`
     def test_custom_serializer_with_nested_types(self):
         nested_data = {
@@ -357,3 +334,27 @@ class TestIncidenteFunctions(unittest.TestCase):
         engine_replica = MagicMock()
         init_db(engine, engine_replica)
         mock_create_all.assert_has_calls([call(engine), call(engine_replica)], any_order=True)
+
+    @patch('app.database.config.is_testing', return_value=False)
+    @patch('app.database.pubsub_v1.PublisherClient')
+    @patch('app.database.config')
+    def test_publish_message_non_testing(self, mock_config, mock_publisher_client, mock_is_testing):
+        mock_config.PROJECT_ID = "test_project"
+        mock_config.TOPIC_ID = "test_topic"
+
+        mock_publisher_instance = mock_publisher_client.return_value
+        mock_future = MagicMock()
+        mock_future.result.return_value = "mock_message_id"
+        mock_publisher_instance.publish.return_value = mock_future
+
+        data = {"message": "Test message"}
+        
+        publish_message(data)
+
+        topic_path = mock_publisher_instance.topic_path("test_project", "test_topic")
+        message_data = json.dumps(data, default=custom_serializer).encode("utf-8")
+        
+        mock_publisher_instance.publish.assert_called_once_with(topic_path, message_data)
+        self.assertEqual(mock_future.result.call_count, 1)
+
+

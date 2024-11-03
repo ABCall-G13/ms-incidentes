@@ -17,6 +17,8 @@ def get_engine(database_url: Optional[str] = None):
         database_url = f"mysql+mysqlconnector://{config.DB_USER}:{config.DB_PASSWORD}@/{config.DB_NAME}?unix_socket={config.DB_SOCKET_PATH_PRIMARY}"
     else:
         database_url = f"mysql+mysqlconnector://{config.DB_USER}:{config.DB_PASSWORD}@{config.DB_HOST}:{config.DB_PORT}/{config.DB_NAME}"
+    
+    print(database_url, flush=True)
     return create_engine(database_url, echo=True)
 
 
@@ -27,7 +29,7 @@ def get_engine_replica(database_url: Optional[str] = None):
         database_url = f"mysql+mysqlconnector://{config.DB_USER_REPLICA}:{config.DB_PASSWORD_REPLICA}@/{config.DB_NAME_REPLICA}?unix_socket={config.DB_SOCKET_PATH_REPLICA}"
     else:
         database_url = f"mysql+mysqlconnector://{config.DB_USER_REPLICA}:{config.DB_PASSWORD_REPLICA}@{config.DB_HOST_REPLICA}:{config.DB_PORT_REPLICA}/{config.DB_NAME_REPLICA}"
-    
+    print(database_url, flush=True)
     return create_engine(database_url, echo=True)
 
 
@@ -119,11 +121,12 @@ def custom_serializer(obj): #
 
 def publish_message(data):
     if not config.is_testing():
-        credentials = service_account.Credentials.from_service_account_file(config.GOOGLE_APPLICATION_CREDENTIALS)
-        publisher = pubsub_v1.PublisherClient(credentials=credentials)
+        publisher = pubsub_v1.PublisherClient()
         topic_path = publisher.topic_path(config.PROJECT_ID, config.TOPIC_ID)
         message_data = json.dumps(data, default=custom_serializer).encode("utf-8")
-        publisher.publish(topic_path, message_data)
+        future = publisher.publish(topic_path, message_data)
+        message_id = future.result()
+        return message_id
     
 
 def create_problema_comun(problema: ProblemaComun, session: Session):

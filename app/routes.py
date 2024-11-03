@@ -25,7 +25,9 @@ async def crear_incidente(
     event_data.id = None
     try:
         incidente = create_incidente_cache(event_data, session, redis_client)
-        publish_message(incidente.model_dump())
+        message_data = incidente.model_dump()
+        message_data["operation"] = "create"
+        publish_message(message_data)
         return incidente
     except Exception as e:
         print("Error creating incident:", str(e))
@@ -96,6 +98,10 @@ async def solucionar_incidente(
     session.commit()
     session.refresh(incidente_existente)
 
+    message_data = incidente_existente.model_dump()
+    message_data["operation"] = "update"
+    publish_message(message_data)
+    
     return incidente_existente
 
 # Ruta para escalar un incidente
@@ -114,6 +120,10 @@ async def escalar_incidente(
     session.add(incidente_existente)
     session.commit()
     session.refresh(incidente_existente)
+
+    message_data = incidente_existente.model_dump()
+    message_data["operation"] = "update"
+    publish_message(message_data)
 
     return incidente_existente
 
@@ -144,3 +154,4 @@ def listar_problemas_comunes(session: Session = Depends(get_session)):
         return obtener_problemas_comunes(session)
     except ValueError as e:
         raise HTTPException(status_code=500, detail=str(e))
+        
