@@ -121,8 +121,7 @@ def custom_serializer(obj): #
 
 def publish_message(data):
     if not config.is_testing():
-        credentials = service_account.Credentials.from_service_account_file(config.GOOGLE_APPLICATION_CREDENTIALS)
-        publisher = pubsub_v1.PublisherClient(credentials=credentials)
+        publisher = pubsub_v1.PublisherClient()
         topic_path = publisher.topic_path(config.PROJECT_ID, config.TOPIC_ID)
         message_data = json.dumps(data, default=custom_serializer).encode("utf-8")
         publisher.publish(topic_path, message_data)
