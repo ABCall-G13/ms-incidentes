@@ -25,7 +25,6 @@ PROJECT_ID = os.getenv("GCP_PROJECT_ID", "abcall-438123")
 TOPIC_ID = os.getenv("GCP_TOPIC_ID", "incidentes-db-sync")
 ENV = os.getenv("ENV")
 
-GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "service-account.json")
 if ENV:
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "service-account.json"
 
