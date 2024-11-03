@@ -124,7 +124,8 @@ def publish_message(data):
         publisher = pubsub_v1.PublisherClient()
         topic_path = publisher.topic_path(config.PROJECT_ID, config.TOPIC_ID)
         message_data = json.dumps(data, default=custom_serializer).encode("utf-8")
-        publisher.publish(topic_path, message_data)
+        future = publisher.publish(topic_path, message_data)
+        message_id = future.result()
     
 
 def create_problema_comun(problema: ProblemaComun, session: Session):
