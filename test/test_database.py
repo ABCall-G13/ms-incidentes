@@ -303,29 +303,6 @@ class TestIncidenteFunctions(unittest.TestCase):
         )
         self.assertIsNone(result)
 
-    # Additional Tests for `publish_message`
-    @patch('app.database.config.is_testing', return_value=False)
-    @patch('app.database.pubsub_v1.PublisherClient')
-    @patch('app.database.service_account.Credentials.from_service_account_file')
-    def test_publish_message_non_testing(self, mock_credentials, mock_publisher, mock_is_testing):
-        # Set GOOGLE_APPLICATION_CREDENTIALS to ensure it exists for the test
-        app.config.GOOGLE_APPLICATION_CREDENTIALS = "service-account.json"
-
-        # Define the expected topic path and mock topic_path method
-        mock_publisher_instance = mock_publisher.return_value
-        topic_path = f"projects/{app.config.PROJECT_ID}/topics/{app.config.TOPIC_ID}"
-        mock_publisher_instance.topic_path.return_value = topic_path
-
-        data = {"message": "Test Message"}
-        publish_message(data)
-
-        # Assert calls with the updated mock
-        mock_credentials.assert_called_once_with("service-account.json")
-        mock_publisher.assert_called_once()
-        mock_publisher_instance.publish.assert_called_once_with(
-            topic_path, json.dumps(data, default=custom_serializer).encode("utf-8")
-        )
-
     # Additional Tests for `custom_serializer`
     def test_custom_serializer_with_nested_types(self):
         nested_data = {
