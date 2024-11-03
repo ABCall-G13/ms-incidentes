@@ -144,3 +144,4 @@ def listar_problemas_comunes(session: Session = Depends(get_session)):
         return obtener_problemas_comunes(session)
     except ValueError as e:
         raise HTTPException(status_code=500, detail=str(e))
+        
