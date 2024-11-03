@@ -126,6 +126,7 @@ def publish_message(data):
         message_data = json.dumps(data, default=custom_serializer).encode("utf-8")
         future = publisher.publish(topic_path, message_data)
         message_id = future.result()
+        return message_id
     
 
 def create_problema_comun(problema: ProblemaComun, session: Session):
