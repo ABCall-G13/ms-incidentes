@@ -11,23 +11,25 @@ from google.oauth2 import service_account
 from datetime import date, datetime
 
 def get_engine(database_url: Optional[str] = None):
-    if database_url:
-        return create_engine(database_url, echo=True)
+    # if database_url:
+    #     return create_engine(database_url, echo=True)
     if config.DB_SOCKET_PATH_PRIMARY:
         database_url = f"mysql+mysqlconnector://{config.DB_USER}:{config.DB_PASSWORD}@/{config.DB_NAME}?unix_socket={config.DB_SOCKET_PATH_PRIMARY}"
     else:
         database_url = f"mysql+mysqlconnector://{config.DB_USER}:{config.DB_PASSWORD}@{config.DB_HOST}:{config.DB_PORT}/{config.DB_NAME}"
+    
+    print(database_url, flush=True)
     return create_engine(database_url, echo=True)
 
 
 def get_engine_replica(database_url: Optional[str] = None):
-    if database_url:
-        return create_engine(database_url, echo=True)
+    # if database_url:
+    #     return create_engine(database_url, echo=True)
     if config.DB_SOCKET_PATH_REPLICA:
         database_url = f"mysql+mysqlconnector://{config.DB_USER_REPLICA}:{config.DB_PASSWORD_REPLICA}@/{config.DB_NAME_REPLICA}?unix_socket={config.DB_SOCKET_PATH_REPLICA}"
     else:
         database_url = f"mysql+mysqlconnector://{config.DB_USER_REPLICA}:{config.DB_PASSWORD_REPLICA}@{config.DB_HOST_REPLICA}:{config.DB_PORT_REPLICA}/{config.DB_NAME_REPLICA}"
-    
+    print(database_url, flush=True)
     return create_engine(database_url, echo=True)
 
 
