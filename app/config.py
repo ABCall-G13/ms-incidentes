@@ -23,6 +23,7 @@ DB_PORT_REPLICA = os.getenv("DB_PORT_REPLICA", "3306")
 
 PROJECT_ID = os.getenv("GCP_PROJECT_ID", "abcall-438123")
 TOPIC_ID = os.getenv("GCP_TOPIC_ID", "incidentes-db-sync")
+NOTIFICATIONS_TOPIC_ID = os.getenv("GCP_NOTIFICATIONS_TOPIC_ID", "notify-users")
 ENV = os.getenv("ENV")
 
 if ENV:

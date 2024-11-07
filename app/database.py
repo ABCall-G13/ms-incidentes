@@ -119,10 +119,10 @@ def custom_serializer(obj): #
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
-def publish_message(data):
+def publish_message(data, topic):
     if not config.is_testing():
         publisher = pubsub_v1.PublisherClient()
-        topic_path = publisher.topic_path(config.PROJECT_ID, config.TOPIC_ID)
+        topic_path = publisher.topic_path(config.PROJECT_ID, topic)
         message_data = json.dumps(data, default=custom_serializer).encode("utf-8")
         future = publisher.publish(topic_path, message_data)
         message_id = future.result()
