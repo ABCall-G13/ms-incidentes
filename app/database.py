@@ -1,6 +1,6 @@
 # incidentes/app/database.py
 import json
-import random
+import secrets
 import string
 from typing import Generator, Optional
 from redis import Redis
@@ -64,7 +64,7 @@ def create_incidente_cache(incidente: Incidente, session: Session, redis_client:
     session_replica = None
     try:
         if not incidente.radicado:
-            incidente.radicado = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+            incidente.radicado = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
         session.add(incidente)
         session.commit()
         session.refresh(incidente)
