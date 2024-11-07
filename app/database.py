@@ -1,11 +1,13 @@
 # incidentes/app/database.py
 import json
+import random
+import string
 from typing import Generator, Optional
 from redis import Redis
 from sqlmodel import Session, create_engine, SQLModel
 from app import config
 from app.models import Incidente, ProblemaComun
-from uuid import UUID, uuid4
+from uuid import UUID
 from google.cloud import pubsub_v1
 from google.oauth2 import service_account
 from datetime import date, datetime
@@ -62,7 +64,7 @@ def create_incidente_cache(incidente: Incidente, session: Session, redis_client:
     session_replica = None
     try:
         if not incidente.radicado:
-            incidente.radicado = uuid4()
+            incidente.radicado = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
         session.add(incidente)
         session.commit()
         session.refresh(incidente)
@@ -94,7 +96,7 @@ def obtener_incidente_cache(incidente_id, session, redis_client):
         return None
 
 
-def obtener_incidente_por_radicado(radicado: UUID, session: Session, redis_client: Redis):
+def obtener_incidente_por_radicado(radicado: str, session: Session, redis_client: Redis):
     incidente = redis_client.get(f"incidente:radicado:{radicado}")
     
     if incidente:

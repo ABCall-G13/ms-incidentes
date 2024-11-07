@@ -3,7 +3,8 @@ from sqlmodel import Field, SQLModel
 from typing import Optional
 from enum import Enum
 from datetime import date
-from uuid import uuid4, UUID
+import random
+import string
 
 
 class Categoria(str, Enum):
@@ -42,7 +43,7 @@ class Incidente(SQLModel, table=True):
     fecha_creacion: date = Field(default_factory=date.today)
     fecha_cierre: Optional[date] = None
     solucion: Optional[str] = Field(sa_column=Column(TEXT))
-    radicado: UUID = Field(default_factory=uuid4, index=True)
+    radicado: str = Field(default_factory=lambda: ''.join(random.choices(string.ascii_letters + string.digits, k=8)), index=True)
     identificacion_usuario: str = Field(max_length=15, nullable=True)
  
 
