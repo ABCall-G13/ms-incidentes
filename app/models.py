@@ -22,7 +22,7 @@ class Prioridad(str, Enum):
 class Canal(str, Enum):
     llamada = "llamada"
     correo = "correo"
-    aplicacion = "Aplicación"
+    aplicacion = "aplicacion"
 
 
 class Estado(str, Enum):
