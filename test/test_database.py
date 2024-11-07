@@ -7,7 +7,7 @@ from app.models import Incidente, Categoria, Prioridad, Canal, Estado
 from app.database import create_incidente_cache, get_engine, obtener_incidente_por_radicado, publish_message, custom_serializer, obtener_incidente_cache, init_db, get_engine_replica, get_session
 from uuid import uuid4, UUID
 from datetime import datetime
-import app.config
+from app import config
 
 class TestIncidenteFunctions(unittest.TestCase):
 
@@ -196,7 +196,7 @@ class TestIncidenteFunctions(unittest.TestCase):
              patch('app.database.pubsub_v1.PublisherClient') as mock_publisher:
             
             data = {"message": "Test Message"}
-            publish_message(data)
+            publish_message(data, config.TOPIC_ID)
             
             # Check that no publishing actions were taken
             mock_credentials.assert_not_called()
@@ -257,7 +257,7 @@ class TestIncidenteFunctions(unittest.TestCase):
             data = {"message": "Test message"}
             
             # Call the function
-            publish_message(data)
+            publish_message(data, config.TOPIC_ID)
             
             # Ensure no credentials or publisher are created in testing mode
             mock_credentials.assert_not_called()
@@ -349,7 +349,7 @@ class TestIncidenteFunctions(unittest.TestCase):
 
         data = {"message": "Test message"}
         
-        publish_message(data)
+        publish_message(data, config.TOPIC_ID)
 
         topic_path = mock_publisher_instance.topic_path("test_project", "test_topic")
         message_data = json.dumps(data, default=custom_serializer).encode("utf-8")
