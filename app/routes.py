@@ -7,6 +7,7 @@ from app.database import create_incidente_cache, get_session, get_redis_client, 
 from sqlmodel import Session, select
 from redis import Redis
 from typing import List
+from app import config
 
 router = APIRouter()
 
@@ -27,7 +28,8 @@ async def crear_incidente(
         incidente = create_incidente_cache(event_data, session, redis_client)
         message_data = incidente.model_dump()
         message_data["operation"] = "create"
-        publish_message(message_data)
+        publish_message(message_data, config.TOPIC_ID)
+        publish_message(message_data, config.NOTIFICATIONS_TOPIC_ID)
         return incidente
     except Exception as e:
         print("Error creating incident:", str(e))
@@ -100,7 +102,8 @@ async def solucionar_incidente(
 
     message_data = incidente_existente.model_dump()
     message_data["operation"] = "update"
-    publish_message(message_data)
+    publish_message(message_data, config.TOPIC_ID)
+    # publish_message(message_data, config.NOTIFICATIONS_TOPIC_ID)
     
     return incidente_existente
 
@@ -123,7 +126,8 @@ async def escalar_incidente(
 
     message_data = incidente_existente.model_dump()
     message_data["operation"] = "update"
-    publish_message(message_data)
+    publish_message(message_data, config.TOPIC_ID)
+    # publish_message(message_data, config.NOTIFICATIONS_TOPIC_ID)
 
     return incidente_existente
 
