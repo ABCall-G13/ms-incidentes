@@ -78,5 +78,5 @@ def incidente():
         fecha_creacion=None,
         fecha_cierre=None,
         solucion=None,
-        radicado=uuid4()
+        radicado=str(uuid4())[:8]
     )
