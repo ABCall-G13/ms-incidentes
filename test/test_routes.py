@@ -39,7 +39,8 @@ def test_obtener_incidente(client):
         "estado": "abierto",
         "fecha_creacion": None,
         "fecha_cierre": None,
-        "solucion": None
+        "solucion": None,
+        "identificacion_usuario": "123456789"
     }
     response = client.post("/incidente", json=incidente_data)
 

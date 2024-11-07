@@ -103,7 +103,7 @@ async def solucionar_incidente(
     message_data = incidente_existente.model_dump()
     message_data["operation"] = "update"
     publish_message(message_data, config.TOPIC_ID)
-    # publish_message(message_data, config.NOTIFICATIONS_TOPIC_ID)
+    publish_message(message_data, config.NOTIFICATIONS_TOPIC_ID)
     
     return incidente_existente
 
@@ -127,7 +127,6 @@ async def escalar_incidente(
     message_data = incidente_existente.model_dump()
     message_data["operation"] = "update"
     publish_message(message_data, config.TOPIC_ID)
-    # publish_message(message_data, config.NOTIFICATIONS_TOPIC_ID)
 
     return incidente_existente
 
