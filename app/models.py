@@ -22,6 +22,7 @@ class Prioridad(str, Enum):
 class Canal(str, Enum):
     llamada = "llamada"
     correo = "correo"
+    aplicacion = "Aplicación"
 
 
 class Estado(str, Enum):
@@ -42,6 +43,7 @@ class Incidente(SQLModel, table=True):
     fecha_cierre: Optional[date] = None
     solucion: Optional[str] = Field(sa_column=Column(TEXT))
     radicado: UUID = Field(default_factory=uuid4, index=True)
+    identificacion_usuario: str = Field(max_length=15, nullable=True)
  
 
 class ProblemaComun(SQLModel, table=True):
