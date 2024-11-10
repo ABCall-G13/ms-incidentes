@@ -3,7 +3,8 @@ from sqlmodel import Field, SQLModel
 from typing import Optional
 from enum import Enum
 from datetime import date
-from uuid import uuid4, UUID
+import secrets
+import string
 
 
 class Categoria(str, Enum):
@@ -22,7 +23,7 @@ class Prioridad(str, Enum):
 class Canal(str, Enum):
     llamada = "llamada"
     correo = "correo"
-    aplicacion = "Aplicación"
+    aplicacion = "aplicacion"
 
 
 class Estado(str, Enum):
@@ -42,7 +43,10 @@ class Incidente(SQLModel, table=True):
     fecha_creacion: date = Field(default_factory=date.today)
     fecha_cierre: Optional[date] = None
     solucion: Optional[str] = Field(sa_column=Column(TEXT))
-    radicado: UUID = Field(default_factory=uuid4, index=True)
+    radicado: str = Field(
+        default_factory=lambda: ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8)),
+        index=True
+    )
     identificacion_usuario: str = Field(max_length=15, nullable=True)
  
 
@@ -51,3 +55,4 @@ class ProblemaComun(SQLModel, table=True):
     description: str = Field(sa_column=Column(TEXT))
     categoria: Categoria
     solucion: str = Field(sa_column=Column(TEXT))
+    cliente_id: int

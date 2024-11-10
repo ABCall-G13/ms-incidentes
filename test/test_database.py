@@ -8,6 +8,8 @@ from app.database import create_incidente_cache, get_engine, obtener_incidente_p
 from uuid import uuid4, UUID
 from datetime import datetime
 from app import config
+import random
+import string
 
 class TestIncidenteFunctions(unittest.TestCase):
 
@@ -36,7 +38,7 @@ class TestIncidenteFunctions(unittest.TestCase):
             fecha_creacion=date.today(),
             fecha_cierre=None,
             solucion=None,
-            radicado=uuid4()
+            radicado=''.join(random.choices(string.ascii_letters + string.digits, k=8))
         )
 
     def tearDown(self):
@@ -54,7 +56,7 @@ class TestIncidenteFunctions(unittest.TestCase):
         self.mock_redis.set.assert_called_once_with(
             f"incidente:{self.incidente.id}", self.incidente.model_dump_json())
         self.assertEqual(result, self.incidente)
-        self.assertIsInstance(result.radicado, UUID)
+        self.assertIsInstance(result.radicado, str)
 
     def test_create_incidente_cache_failure(self):
         self.mock_session.commit.side_effect = Exception(
@@ -158,10 +160,10 @@ class TestIncidenteFunctions(unittest.TestCase):
             f"incidente:{incidente_sin_radicado.id}", incidente_sin_radicado.model_dump_json())
         
         # Asegurarse de que el radicado fue generado
-        self.assertIsInstance(result.radicado, UUID)
+        self.assertIsInstance(result.radicado, str)
         
     def test_obtener_incidente_por_radicado_no_existente(self):
-        radicado_inexistente = uuid4()
+        radicado_inexistente = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
 
         # Simular que no está en Redis ni en la base de datos
         self.mock_redis.get.return_value = None
@@ -176,7 +178,7 @@ class TestIncidenteFunctions(unittest.TestCase):
         self.mock_redis.get.assert_called_once_with(f"incidente:radicado:{radicado_inexistente}")
         
     def test_obtener_incidente_por_radicado_existente_en_redis(self):
-        radicado_existente = uuid4()
+        radicado_existente = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
         incidente_json = self.incidente.model_dump_json()
 
         # Simular que el incidente está en Redis
@@ -278,7 +280,7 @@ class TestIncidenteFunctions(unittest.TestCase):
         self.assertEqual(engine, mock_create_engine.return_value)
 
     def test_create_incidente_cache_with_existing_radicado(self):
-        self.incidente.radicado = uuid4()  # Assign an existing radicado
+        self.incidente.radicado = ''.join(random.choices(string.ascii_letters + string.digits, k=8))  # Assign an existing alphanumeric radicado
         result = create_incidente_cache(
             self.incidente, self.mock_session, self.mock_redis
         )

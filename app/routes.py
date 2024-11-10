@@ -1,5 +1,4 @@
 from datetime import date
-from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from app.models import Canal, Categoria, Estado, Incidente, Prioridad
@@ -133,7 +132,7 @@ async def escalar_incidente(
 
 @router.get("/incidente/radicado/{radicado}", response_model=Incidente)
 async def obtener_incidente_por_radicado_endpoint(
-    radicado: UUID,
+    radicado: str,
     session: Session = Depends(get_session_replica),
     redis_client: Redis = Depends(get_redis_client)
 ):
