@@ -204,7 +204,8 @@ def test_registrar_problema_comun(client, session):
     problema_data = {
         "description": "Problem description",
         "categoria": Categoria.acceso.value,
-        "solucion": "Suggested solution"
+        "solucion": "Suggested solution",
+        "cliente_id": 1
     }
 
     response = client.post("/soluciones", json=problema_data)
@@ -226,7 +227,8 @@ def test_listar_problemas_comunes(client, session):
     problema = ProblemaComun(
         description="Sample problem",
         categoria=Categoria.funcionamiento,
-        solucion="Sample solution"
+        solucion="Sample solution",
+        cliente_id = 1
     )
     session.add(problema)
     session.commit()

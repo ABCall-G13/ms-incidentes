@@ -55,3 +55,4 @@ class ProblemaComun(SQLModel, table=True):
     description: str = Field(sa_column=Column(TEXT))
     categoria: Categoria
     solucion: str = Field(sa_column=Column(TEXT))
+    cliente_id: int
