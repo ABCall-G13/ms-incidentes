@@ -1,12 +1,14 @@
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
+from app.cliente_service import verificar_cliente_existente
 from app.models import Canal, Categoria, Estado, Incidente, Prioridad
 from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache, obtener_incidente_por_radicado, get_session_replica, publish_message, create_problema_comun, obtener_problemas_comunes, ProblemaComun
 from sqlmodel import Session, select
 from redis import Redis
 from typing import List
 from app import config
+from app.security import ClientToken, get_current_client_token
 
 router = APIRouter()
 
@@ -48,20 +50,19 @@ async def obtener_incidente(
         raise HTTPException(status_code=404, detail="Incidente no encontrado")
 
 
-# Nuevo endpoint para obtener todos los incidentes
 @router.get("/incidentes", response_model=list[Incidente])
 async def obtener_todos_los_incidentes(
-    session: Session = Depends(get_session_replica)
+    request: Request,
+    session: Session = Depends(get_session_replica),
+    client_token: ClientToken = Depends(get_current_client_token)
 ):
     try:
-        # Consulta para obtener todos los incidentes
-        statement = select(Incidente)
-        results = session.exec(statement).all()  # Ejecutar la consulta
-
-        return results  # Devuelve la lista de incidentes
+        nit = await verificar_cliente_existente(client_token.email, client_token.token)
+        statement = select(Incidente).where(Incidente.cliente_id == nit)
+        results = session.exec(statement).all()
+        return results
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail="Error al obtener incidentes")
+        raise HTTPException(status_code=500, detail="Error al obtener incidentes")
 
 
 @router.get("/incidentes/fields")
