@@ -18,7 +18,7 @@ def test_health_check(client):
 # Prueba para crear un incidente
 def test_crear_incidente(client, session, incidente):
     # Convert UUID to string for JSON serialization
-    incidente_dict = incidente.dict()
+    incidente_dict = incidente.model_dump()
     incidente_dict["radicado"] = str(incidente_dict["radicado"])
 
     response = client.post("/incidente", json=incidente_dict)
