@@ -1,7 +1,7 @@
 # incidentes/test/test_routes.py
 from datetime import date, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
-from fastapi import status
+from fastapi import HTTPException, status
 from app.database import get_session_replica
 from app.models import Incidente, Categoria, Canal, Estado, Prioridad, ProblemaComun
 from uuid import uuid4
@@ -18,7 +18,7 @@ def test_health_check(client):
 # Prueba para crear un incidente
 def test_crear_incidente(client, session, incidente):
     # Convert UUID to string for JSON serialization
-    incidente_dict = incidente.dict()
+    incidente_dict = incidente.model_dump()
     incidente_dict["radicado"] = str(incidente_dict["radicado"])
 
     response = client.post("/incidente", json=incidente_dict)
@@ -106,6 +106,165 @@ def test_obtener_todos_los_incidentes(client, session, incidente, mocker):
     incidente_obtenido = data[0]
     assert incidente_obtenido["cliente_id"] == incidente.cliente_id
     assert incidente_obtenido["description"] == incidente.description
+
+
+def test_obtener_todos_los_incidentes_error_generico(client, mocker):
+    # Crear un token de cliente o agente
+    email = "user@example.com"
+    token_data = {
+        "sub": email,
+        "exp": datetime.utcnow() + timedelta(minutes=30),
+    }
+    token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+
+    # Mock para verificar cliente existente
+    nit_cliente = "12345"
+    mock_verificar_cliente = AsyncMock(return_value=nit_cliente)
+    mocker.patch("app.routes.verificar_cliente_existente", mock_verificar_cliente)
+
+    # Mock para simular error genérico en la base de datos
+    mock_session = MagicMock()
+    mock_session.exec.side_effect = Exception("Database error")
+
+    # Sobrescribir la dependencia `get_session_replica`
+    def mock_get_session_replica():
+        yield mock_session
+
+    app = client.app
+    app.dependency_overrides[get_session_replica] = mock_get_session_replica
+
+    # Headers con el token de autorización
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    # Enviar solicitud para obtener incidentes
+    response = client.get("/incidentes", headers=headers)
+
+    # Validar que se devuelve un error 500
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.json()["detail"] == "Error al obtener incidentes"
+
+    # Restaurar las dependencias originales
+    app.dependency_overrides.pop(get_session_replica)
+
+
+
+def test_obtener_todos_los_incidentes_como_agente(client, session, mocker, incidente):
+    # Agregar un incidente en la base de datos
+    session.add(incidente)
+    session.commit()
+
+    # Crear un token de agente
+    email = "agente@example.com"
+    token_data = {
+        "sub": email,
+        "exp": datetime.utcnow() + timedelta(minutes=30),
+    }
+    token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+
+    # Mock para verificar que el cliente no existe (devolver 404)
+    mock_verificar_cliente = AsyncMock(side_effect=HTTPException(status_code=404, detail="Cliente no encontrado"))
+    mocker.patch("app.routes.verificar_cliente_existente", mock_verificar_cliente)
+
+    # Mock para verificar que el agente existe
+    nit_agente = "AGENTE123"
+    mock_verificar_agente = AsyncMock(return_value=nit_agente)
+    mocker.patch("app.routes.verificar_agente_existente", mock_verificar_agente)
+
+    # Headers con el token de autorización
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    # Enviar solicitud para obtener incidentes
+    response = client.get("/incidentes", headers=headers)
+
+    # Validar que la respuesta sea exitosa
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+
+    # Validar que los incidentes están en la respuesta
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert data[0]["description"] == incidente.description
+    assert data[0]["estado"] == incidente.estado.value
+
+
+
+
+
+def test_obtener_todos_los_incidentes_agente_no_existe(client, mocker):
+    # Crear un token de agente inexistente
+    email = "agente_inexistente@example.com"
+    token_data = {
+        "sub": email,
+        "exp": datetime.utcnow() + timedelta(minutes=30),
+    }
+    token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+
+    # Mock para verificar al agente inexistente
+    mock_verificar_agente = AsyncMock(side_effect=HTTPException(status_code=404, detail="Agente no encontrado"))
+    mocker.patch("app.routes.verificar_agente_existente", mock_verificar_agente)
+
+    # Headers con el token de autorización
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    # Enviar solicitud para obtener incidentes
+    response = client.get("/incidentes", headers=headers)
+
+    # Validar respuesta de error
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Error al obtener incidentes"
+
+
+def test_obtener_valores_permitidos(client):
+    response = client.get("/incidentes/fields")
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+    # Validar que todas las categorías, prioridades, canales y estados están presentes
+    assert "categoria" in data
+    assert "prioridad" in data
+    assert "canal" in data
+    assert "estado" in data
+
+    # Validar que las listas de valores no están vacías
+    assert len(data["categoria"]) > 0
+    assert len(data["prioridad"]) > 0
+    assert len(data["canal"]) > 0
+    assert len(data["estado"]) > 0
+
+
+def test_crear_incidente_error(client, mocker):
+    # Mock para forzar un error en la creación del incidente
+    mock_create_incidente_cache = mocker.patch("app.routes.create_incidente_cache")
+    mock_create_incidente_cache.side_effect = Exception("Error inesperado en la creación del incidente")
+
+    incidente_data = {
+        "description": "Test incident",
+        "categoria": "acceso",
+        "prioridad": "alta",
+        "canal": "llamada",
+        "cliente_id": 1,
+        "estado": "abierto",
+        "fecha_creacion": None,
+        "fecha_cierre": None,
+        "solucion": None,
+        "identificacion_usuario": "123456789"
+    }
+
+    response = client.post("/incidente", json=incidente_data)
+    
+    # Validar que el código de error es 500
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    # Validar el mensaje de error devuelto
+    assert response.json()["detail"] == "Error inesperado en la creación del incidente"
+
+
 
 # Prueba para solucionar un incidente
 def test_solucionar_incidente(client, session, incidente):

@@ -20,3 +20,21 @@ async def verificar_cliente_existente(email: str, token: str) -> str:
         nit = cliente_data.get("nit")
         
         return nit
+
+async def verificar_agente_existente(email: str, token: str) -> str:
+    base_url = URL(config.URL_SERVICE_CLIENT)
+    full_url = base_url / "agentes/email"
+
+    async with httpx.AsyncClient() as client:
+        headers = {"Authorization": f"Bearer {token}"}
+        response = await client.post(str(full_url), json={"email": email}, headers=headers)
+        
+        if response.status_code == 404:
+            raise HTTPException(status_code=404, detail="Agente no encontrado")
+        elif response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail="Error al verificar el agente")
+        
+        agente_data = response.json()
+        nit = agente_data.get("nit")
+        
+        return nit
