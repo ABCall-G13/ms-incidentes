@@ -1,7 +1,7 @@
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
-from app.cliente_service import verificar_cliente_existente
+from app.cliente_service import verificar_agente_existente, verificar_cliente_existente
 from app.models import Canal, Categoria, Estado, Incidente, Prioridad
 from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache, obtener_incidente_por_radicado, get_session_replica, publish_message, create_problema_comun, obtener_problemas_comunes, ProblemaComun
 from sqlmodel import Session, select
@@ -57,8 +57,19 @@ async def obtener_todos_los_incidentes(
     client_token: ClientToken = Depends(get_current_client_token)
 ):
     try:
-        nit = await verificar_cliente_existente(client_token.email, client_token.token)
-        statement = select(Incidente).where(Incidente.cliente_id == nit)
+        print(request.headers)
+
+        try:
+            nit_cliente = await verificar_cliente_existente(client_token.email, client_token.token)
+            statement = select(Incidente).where(Incidente.cliente_id == nit_cliente)
+        except HTTPException as client_exception:
+            if client_exception.status_code == 404:
+                # Si no es un cliente, intentar verificar si es un agente
+                nit_agente = await verificar_agente_existente(client_token.email, client_token.token)
+                statement = select(Incidente)
+            else:
+                raise client_exception
+
         results = session.exec(statement).all()
         return results
     except Exception as e:
