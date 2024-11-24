@@ -21,7 +21,7 @@ def get_current_client_token(request: Request, db: Session = Depends(get_session
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    token = request.headers.get("Authorization") or request.headers.get("X-Forwarded-Authorization")
+    token = request.headers.get("X-Forwarded-Authorization") or request.headers.get("Authorization")
     
     if not token or not token.startswith("Bearer "):
         raise credentials_exception
