@@ -2,7 +2,7 @@ from sqlalchemy import TEXT, Column
 from sqlmodel import Field, SQLModel
 from typing import Optional
 from enum import Enum
-from datetime import date
+from datetime import date, datetime
 import secrets
 import string
 
@@ -48,7 +48,6 @@ class Incidente(SQLModel, table=True):
         index=True
     )
     identificacion_usuario: str = Field(max_length=15, nullable=True)
- 
 
 class ProblemaComun(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -56,3 +55,10 @@ class ProblemaComun(SQLModel, table=True):
     categoria: Categoria
     solucion: str = Field(sa_column=Column(TEXT))
     cliente_id: int
+
+class LogIncidente(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    incidente_id: int = Field(index=True)
+    cuerpo_completo: str
+    fecha_cambio: datetime = Field(default_factory=datetime.utcnow)
+    origen_cambio: str  

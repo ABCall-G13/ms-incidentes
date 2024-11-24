@@ -10,12 +10,16 @@ from jose import JWTError, jwt
 from app.security import ALGORITHM, SECRET_KEY
 
 # Prueba para verificar que la API está funcionando correctamente
+
+
 def test_health_check(client):
     response = client.get("/")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"status": "ok"}
 
 # Prueba para crear un incidente
+
+
 def test_crear_incidente(client, session, incidente):
     # Convert UUID to string for JSON serialization
     incidente_dict = incidente.model_dump()
@@ -32,7 +36,8 @@ def test_crear_incidente(client, session, incidente):
     assert data["categoria"] == incidente.categoria.value
     assert "radicado" in data
     assert isinstance(data["radicado"], str)
-    
+
+
 def test_obtener_incidente(client):
 
     incidente_data = {
@@ -70,6 +75,8 @@ def test_obtener_incidente(client):
     assert data["solucion"] is None
 
 # Prueba para obtener todos los incidentes
+
+
 def test_obtener_todos_los_incidentes(client, session, incidente, mocker):
     # Add the incident to the test database
     session.add(incidente)
@@ -86,7 +93,8 @@ def test_obtener_todos_los_incidentes(client, session, incidente, mocker):
     # Mock the 'verificar_cliente_existente' async function
     expected_nit = incidente.cliente_id  # Assuming 'cliente_id' is the NIT
     mock_verificar_cliente = AsyncMock(return_value=expected_nit)
-    mocker.patch("app.routes.verificar_cliente_existente", mock_verificar_cliente)
+    mocker.patch("app.routes.verificar_cliente_existente",
+                 mock_verificar_cliente)
 
     # Prepare the headers with the Authorization token
     headers = {
@@ -120,7 +128,8 @@ def test_obtener_todos_los_incidentes_error_generico(client, mocker):
     # Mock para verificar cliente existente
     nit_cliente = "12345"
     mock_verificar_cliente = AsyncMock(return_value=nit_cliente)
-    mocker.patch("app.routes.verificar_cliente_existente", mock_verificar_cliente)
+    mocker.patch("app.routes.verificar_cliente_existente",
+                 mock_verificar_cliente)
 
     # Mock para simular error genérico en la base de datos
     mock_session = MagicMock()
@@ -149,7 +158,6 @@ def test_obtener_todos_los_incidentes_error_generico(client, mocker):
     app.dependency_overrides.pop(get_session_replica)
 
 
-
 def test_obtener_todos_los_incidentes_como_agente(client, session, mocker, incidente):
     # Agregar un incidente en la base de datos
     session.add(incidente)
@@ -164,13 +172,16 @@ def test_obtener_todos_los_incidentes_como_agente(client, session, mocker, incid
     token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
 
     # Mock para verificar que el cliente no existe (devolver 404)
-    mock_verificar_cliente = AsyncMock(side_effect=HTTPException(status_code=404, detail="Cliente no encontrado"))
-    mocker.patch("app.routes.verificar_cliente_existente", mock_verificar_cliente)
+    mock_verificar_cliente = AsyncMock(side_effect=HTTPException(
+        status_code=404, detail="Cliente no encontrado"))
+    mocker.patch("app.routes.verificar_cliente_existente",
+                 mock_verificar_cliente)
 
     # Mock para verificar que el agente existe
     nit_agente = "AGENTE123"
     mock_verificar_agente = AsyncMock(return_value=nit_agente)
-    mocker.patch("app.routes.verificar_agente_existente", mock_verificar_agente)
+    mocker.patch("app.routes.verificar_agente_existente",
+                 mock_verificar_agente)
 
     # Headers con el token de autorización
     headers = {
@@ -191,9 +202,6 @@ def test_obtener_todos_los_incidentes_como_agente(client, session, mocker, incid
     assert data[0]["estado"] == incidente.estado.value
 
 
-
-
-
 def test_obtener_todos_los_incidentes_agente_no_existe(client, mocker):
     # Crear un token de agente inexistente
     email = "agente_inexistente@example.com"
@@ -204,8 +212,10 @@ def test_obtener_todos_los_incidentes_agente_no_existe(client, mocker):
     token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
 
     # Mock para verificar al agente inexistente
-    mock_verificar_agente = AsyncMock(side_effect=HTTPException(status_code=404, detail="Agente no encontrado"))
-    mocker.patch("app.routes.verificar_agente_existente", mock_verificar_agente)
+    mock_verificar_agente = AsyncMock(side_effect=HTTPException(
+        status_code=404, detail="Agente no encontrado"))
+    mocker.patch("app.routes.verificar_agente_existente",
+                 mock_verificar_agente)
 
     # Headers con el token de autorización
     headers = {
@@ -240,8 +250,10 @@ def test_obtener_valores_permitidos(client):
 
 def test_crear_incidente_error(client, mocker):
     # Mock para forzar un error en la creación del incidente
-    mock_create_incidente_cache = mocker.patch("app.routes.create_incidente_cache")
-    mock_create_incidente_cache.side_effect = Exception("Error inesperado en la creación del incidente")
+    mock_create_incidente_cache = mocker.patch(
+        "app.routes.create_incidente_cache")
+    mock_create_incidente_cache.side_effect = Exception(
+        "Error inesperado en la creación del incidente")
 
     incidente_data = {
         "description": "Test incident",
@@ -257,13 +269,13 @@ def test_crear_incidente_error(client, mocker):
     }
 
     response = client.post("/incidente", json=incidente_data)
-    
+
     # Validar que el código de error es 500
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-    
-    # Validar el mensaje de error devuelto
-    assert response.json()["detail"] == "Error inesperado en la creación del incidente"
 
+    # Validar el mensaje de error devuelto
+    assert response.json()[
+        "detail"] == "Error inesperado en la creación del incidente"
 
 
 # Prueba para solucionar un incidente
@@ -275,7 +287,8 @@ def test_solucionar_incidente(client, session, incidente):
     # Preparamos el payload para actualizar la solución
     payload = {"solucion": "Solución al incidente"}
 
-    response = client.put(f"/incidente/{incidente.id}/solucionar", json=payload)
+    response = client.put(
+        f"/incidente/{incidente.id}/solucionar", json=payload)
     assert response.status_code == status.HTTP_200_OK
 
     # Validar que el incidente ahora esté cerrado y tenga la solución correcta
@@ -284,6 +297,8 @@ def test_solucionar_incidente(client, session, incidente):
     assert data["estado"] == Estado.cerrado.value
 
 # Prueba para escalar un incidente
+
+
 def test_escalar_incidente(client, session, incidente):
     # Agregamos el incidente a la base de datos de prueba
     session.add(incidente)
@@ -297,7 +312,8 @@ def test_escalar_incidente(client, session, incidente):
     assert data["estado"] == Estado.escalado.value
     assert "radicado" in data
     assert isinstance(data["radicado"], str)
-    
+
+
 def test_obtener_incidente_por_radicado(client, session, incidente):
     session.add(incidente)
     session.commit()
@@ -310,6 +326,7 @@ def test_obtener_incidente_por_radicado(client, session, incidente):
     assert data["description"] == incidente.description
     assert data["categoria"] == incidente.categoria.value
     assert data["radicado"] == str(incidente.radicado)
+
 
 def test_escalar_incidente(client, session):
     # Set up an incident in the database to escalate
@@ -341,6 +358,7 @@ def test_escalar_incidente(client, session):
     escalated_incident = session.get(Incidente, incidente.id)
     assert escalated_incident.estado == Estado.escalado
 
+
 def test_obtener_incidente_not_found(client, mocker):
     # Simulate `None` return for a missing incident
     mocker.patch("app.database.obtener_incidente_cache", return_value=None)
@@ -362,7 +380,8 @@ def test_obtener_todos_los_incidentes_internal_server_error(client, mocker):
     # Mock the 'verificar_cliente_existente' async function
     expected_nit = "some-nit-value"
     mock_verificar_cliente = AsyncMock(return_value=expected_nit)
-    mocker.patch("app.routes.verificar_cliente_existente", mock_verificar_cliente)
+    mocker.patch("app.routes.verificar_cliente_existente",
+                 mock_verificar_cliente)
 
     # Create a mock session where exec raises an exception
     mock_session = MagicMock()
@@ -392,7 +411,8 @@ def test_obtener_todos_los_incidentes_internal_server_error(client, mocker):
 
 def test_obtener_incidente_por_radicado_not_found(client, mocker):
     radicado = uuid4()
-    mocker.patch("app.database.obtener_incidente_por_radicado", return_value=None)
+    mocker.patch("app.database.obtener_incidente_por_radicado",
+                 return_value=None)
 
     response = client.get(f"/incidente/radicado/{radicado}")
     assert response.status_code == 404
@@ -402,7 +422,8 @@ def test_obtener_incidente_por_radicado_not_found(client, mocker):
 def test_solucionar_incidente_not_found(client, mocker):
     mocker.patch("sqlmodel.Session.get", return_value=None)
 
-    response = client.put("/incidente/1/solucionar", json={"solucion": "Fixed issue"})
+    response = client.put("/incidente/1/solucionar",
+                          json={"solucion": "Fixed issue"})
     assert response.status_code == 404
     assert response.json()["detail"] == "Incidente no encontrado"
 
@@ -443,7 +464,7 @@ def test_listar_problemas_comunes(client, session):
         description="Sample problem",
         categoria=Categoria.funcionamiento,
         solucion="Sample solution",
-        cliente_id = 1
+        cliente_id=1
     )
     session.add(problema)
     session.commit()
@@ -466,7 +487,8 @@ def test_registrar_problema_comun_value_error(client, mocker):
         "solucion": "Suggested solution"
     }
 
-    mocker.patch("app.routes.create_problema_comun", side_effect=ValueError("Test error"))
+    mocker.patch("app.routes.create_problema_comun",
+                 side_effect=ValueError("Test error"))
 
     response = client.post("/soluciones", json=problema_data)
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -474,7 +496,8 @@ def test_registrar_problema_comun_value_error(client, mocker):
 
 
 def test_listar_problemas_comunes_value_error(client, mocker):
-    mocker.patch("app.routes.obtener_problemas_comunes", side_effect=ValueError("Test error"))
+    mocker.patch("app.routes.obtener_problemas_comunes",
+                 side_effect=ValueError("Test error"))
 
     response = client.get("/soluciones")
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR

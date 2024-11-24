@@ -2,13 +2,14 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from app.cliente_service import verificar_agente_existente, verificar_cliente_existente
-from app.models import Canal, Categoria, Estado, Incidente, Prioridad
-from app.database import create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache, obtener_incidente_por_radicado, get_session_replica, publish_message, create_problema_comun, obtener_problemas_comunes, ProblemaComun
+from app.models import Canal, Categoria, Estado, Incidente, LogIncidente, Prioridad
+from app.database import actualizar_incidente, create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache, obtener_incidente_por_radicado, get_session_replica, obtener_logs_por_incidente, publish_message, create_problema_comun, obtener_problemas_comunes, ProblemaComun, registrar_log_incidente
 from sqlmodel import Session, select
 from redis import Redis
 from typing import List
 from app import config
 from app.security import ClientToken, get_current_client_token
+from app.utils import determinar_origen_cambio
 
 router = APIRouter()
 
@@ -18,19 +19,25 @@ async def health():
     return {"status": "ok"}
 
 
-@router.post("/incidente", response_model=Incidente) #
+@router.post("/incidente", response_model=Incidente)
 async def crear_incidente(
     event_data: Incidente,
+    request: Request,
     session: Session = Depends(get_session),
     redis_client: Redis = Depends(get_redis_client)
 ):
     event_data.id = None
     try:
-        incidente = create_incidente_cache(event_data, session, redis_client)
+        incidente = create_incidente_cache(
+            event_data, session, redis_client)
         message_data = incidente.model_dump()
         message_data["operation"] = "create"
         publish_message(message_data, config.TOPIC_ID)
         publish_message(message_data, config.NOTIFICATIONS_TOPIC_ID)
+
+        origen_cambio = determinar_origen_cambio(request.headers)
+        registrar_log_incidente(incidente, origen_cambio, session)
+
         return incidente
     except Exception as e:
         print("Error creating incident:", str(e))
@@ -59,7 +66,8 @@ async def obtener_todos_los_incidentes(
     try:
         try:
             nit_cliente = await verificar_cliente_existente(client_token.email, client_token.token)
-            statement = select(Incidente).where(Incidente.cliente_id == nit_cliente)
+            statement = select(Incidente).where(
+                Incidente.cliente_id == nit_cliente)
         except HTTPException as client_exception:
             if client_exception.status_code == 404:
                 # Si no es un cliente, intentar verificar si es un agente
@@ -71,7 +79,8 @@ async def obtener_todos_los_incidentes(
         results = session.exec(statement).all()
         return results
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Error al obtener incidentes")
+        raise HTTPException(
+            status_code=500, detail="Error al obtener incidentes")
 
 
 @router.get("/incidentes/fields")
@@ -93,6 +102,7 @@ class SolucionRequest(BaseModel):
 async def solucionar_incidente(
     incidente_id: int,
     event_data: SolucionRequest,
+    request: Request,
     session: Session = Depends(get_session)
 ):
 
@@ -101,22 +111,23 @@ async def solucionar_incidente(
     if not incidente_existente:
         raise HTTPException(status_code=404, detail="Incidente no encontrado")
 
-    # Actualizar la solución y cambiar el estado a "cerrado"
-    incidente_existente.solucion = event_data.solucion
-    incidente_existente.estado = "cerrado"
-    incidente_existente.fecha_cierre = date.today()
-    session.add(incidente_existente)
-    session.commit()
-    session.refresh(incidente_existente)
+    incidente_actualizado = actualizar_incidente(
+        incidente_existente, event_data, session)
 
-    message_data = incidente_existente.model_dump()
+    message_data = incidente_actualizado.model_dump()
     message_data["operation"] = "update"
     publish_message(message_data, config.TOPIC_ID)
     publish_message(message_data, config.NOTIFICATIONS_TOPIC_ID)
-    
-    return incidente_existente
+
+    origen_cambio = determinar_origen_cambio(request.headers)
+
+    registrar_log_incidente(incidente_actualizado, origen_cambio, session)
+
+    return incidente_actualizado
 
 # Ruta para escalar un incidente
+
+
 @router.put("/incidente/{incidente_id}/escalar", response_model=Incidente)
 async def escalar_incidente(
     incidente_id: int,
@@ -166,4 +177,8 @@ def listar_problemas_comunes(session: Session = Depends(get_session)):
         return obtener_problemas_comunes(session)
     except ValueError as e:
         raise HTTPException(status_code=500, detail=str(e))
-        
+
+
+@router.get("/incidente/{incidente_id}/logs", response_model=List[LogIncidente])
+async def obtener_logs_incidente(incidente_id: int, session: Session = Depends(get_session_replica)):
+    return obtener_logs_por_incidente(incidente_id, session)

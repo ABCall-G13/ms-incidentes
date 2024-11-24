@@ -2,15 +2,18 @@
 import json
 import secrets
 import string
-from typing import Generator, Optional
+from typing import Generator, List, Optional
 from redis import Redis
+from sqlalchemy import select
 from sqlmodel import Session, create_engine, SQLModel
 from app import config
-from app.models import Incidente, ProblemaComun
+from app.models import Incidente, LogIncidente, ProblemaComun
 from uuid import UUID
 from google.cloud import pubsub_v1
 from google.oauth2 import service_account
 from datetime import date, datetime
+
+from app.utils import determinar_origen_cambio
 
 def get_engine(database_url: Optional[str] = None):
     if database_url:
@@ -146,3 +149,45 @@ def create_problema_comun(problema: ProblemaComun, session: Session):
 
 def obtener_problemas_comunes(session: Session):
     return session.query(ProblemaComun).all()
+
+
+def actualizar_incidente(incidente_existente: Incidente, event_data, session: Session):
+    try:
+        incidente_existente.solucion = event_data.solucion
+        incidente_existente.estado = "cerrado"
+        incidente_existente.fecha_cierre = date.today()
+        session.add(incidente_existente)
+        session.commit()
+        session.refresh(incidente_existente)
+
+        return incidente_existente
+    except Exception as e:
+        session.rollback()
+        raise Exception(f"Error al actualizar incidente: {str(e)}")
+    finally:
+        session.close()
+
+
+
+def registrar_log_incidente(incidente: Incidente, origen_cambio: str, session: Session):
+    try:
+        log = LogIncidente(
+            incidente_id=incidente.id,
+            cuerpo_completo=incidente.model_dump_json(),
+            origen_cambio=origen_cambio
+        )
+
+        session.add(log)
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        raise Exception(f"Error al registrar log del incidente: {str(e)}")
+    
+
+def obtener_logs_por_incidente(incidente_id: int, session: Session) -> List[LogIncidente]:
+    try:
+        statement = select(LogIncidente).where(LogIncidente.incidente_id == incidente_id).order_by(LogIncidente.fecha_cambio)
+        logs = session.exec(statement).all()
+        return logs
+    except Exception as e:
+        raise Exception(f"Error al obtener logs: {str(e)}")
