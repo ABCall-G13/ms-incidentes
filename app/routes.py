@@ -2,6 +2,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from app.cliente_service import verificar_agente_existente, verificar_cliente_existente
+from app.external_services import registrar_incidente_facturado
 from app.models import Canal, Categoria, Estado, Incidente, LogIncidente, Prioridad
 from app.database import actualizar_incidente, create_incidente_cache, get_session, get_redis_client, obtener_incidente_cache, obtener_incidente_por_radicado, get_session_replica, obtener_logs_por_incidente, publish_message, create_problema_comun, obtener_problemas_comunes, ProblemaComun, registrar_log_incidente
 from sqlmodel import Session, select
@@ -37,7 +38,18 @@ async def crear_incidente(
 
         origen_cambio = determinar_origen_cambio(request.headers)
         registrar_log_incidente(incidente, origen_cambio, session)
-
+        
+        try:
+            factura_response = await registrar_incidente_facturado(
+                radicado_incidente=incidente.radicado,
+                costo=100,  # Costo fijo de $100
+                fecha_incidente=incidente.fecha_creacion.isoformat(),
+                nit=incidente.identificacion_usuario  # Pasar el NIT al microservicio
+            )
+            print("Incidente facturado registrado con éxito:", factura_response)
+        except Exception as e:
+            print("Error al registrar el incidente facturado:", str(e))        
+        
         return incidente
     except Exception as e:
         print("Error creating incident:", str(e))
