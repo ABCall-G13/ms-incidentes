@@ -1,7 +1,7 @@
 # incidentes/test/test_routes.py
 from datetime import date, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
-from fastapi import status
+from fastapi import HTTPException, status
 from app.database import get_session_replica
 from app.models import Incidente, Categoria, Canal, Estado, Prioridad, ProblemaComun
 from uuid import uuid4
@@ -106,6 +106,68 @@ def test_obtener_todos_los_incidentes(client, session, incidente, mocker):
     incidente_obtenido = data[0]
     assert incidente_obtenido["cliente_id"] == incidente.cliente_id
     assert incidente_obtenido["description"] == incidente.description
+
+def test_obtener_todos_los_incidentes_por_agente(client, session, mocker, incidente):
+    # Agregamos el incidente a la base de datos de prueba
+    session.add(incidente)
+    session.commit()
+
+    # Crear un token de agente
+    email = "agente@example.com"
+    token_data = {
+        "sub": email,
+        "exp": datetime.utcnow() + timedelta(minutes=30),
+    }
+    token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+
+    # Mock para verificar al agente existente
+    nit_agente = "AGENTE123"
+    mock_verificar_agente = AsyncMock(return_value=nit_agente)
+    mocker.patch("app.routes.verificar_agente_existente", mock_verificar_agente)
+
+    # Headers con el token de autorización
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    # Enviar solicitud para obtener incidentes
+    response = client.get("/incidentes", headers=headers)
+
+    # Validar respuesta
+    assert response.status_code == 200
+    data = response.json()
+
+    # Validar que los datos de incidente se encuentran en la respuesta
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert any(inc["cliente_id"] == incidente.cliente_id for inc in data)
+
+
+def test_obtener_todos_los_incidentes_agente_no_existe(client, mocker):
+    # Crear un token de agente inexistente
+    email = "agente_inexistente@example.com"
+    token_data = {
+        "sub": email,
+        "exp": datetime.utcnow() + timedelta(minutes=30),
+    }
+    token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+
+    # Mock para verificar al agente inexistente
+    mock_verificar_agente = AsyncMock(side_effect=HTTPException(status_code=404, detail="Agente no encontrado"))
+    mocker.patch("app.routes.verificar_agente_existente", mock_verificar_agente)
+
+    # Headers con el token de autorización
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    # Enviar solicitud para obtener incidentes
+    response = client.get("/incidentes", headers=headers)
+
+    # Validar respuesta de error
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Error al obtener incidentes"
+
 
 # Prueba para solucionar un incidente
 def test_solucionar_incidente(client, session, incidente):
