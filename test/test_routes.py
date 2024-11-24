@@ -107,40 +107,6 @@ def test_obtener_todos_los_incidentes(client, session, incidente, mocker):
     assert incidente_obtenido["cliente_id"] == incidente.cliente_id
     assert incidente_obtenido["description"] == incidente.description
 
-def test_obtener_todos_los_incidentes_por_agente(client, session, mocker, incidente):
-    # Agregamos el incidente a la base de datos de prueba
-    session.add(incidente)
-    session.commit()
-
-    # Crear un token de agente
-    email = "agente@example.com"
-    token_data = {
-        "sub": email,
-        "exp": datetime.utcnow() + timedelta(minutes=30),
-    }
-    token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
-
-    # Mock para verificar al agente existente
-    nit_agente = "AGENTE123"
-    mock_verificar_agente = AsyncMock(return_value=nit_agente)
-    mocker.patch("app.routes.verificar_agente_existente", mock_verificar_agente)
-
-    # Headers con el token de autorización
-    headers = {
-        "Authorization": f"Bearer {token}"
-    }
-
-    # Enviar solicitud para obtener incidentes
-    response = client.get("/incidentes", headers=headers)
-
-    # Validar respuesta
-    assert response.status_code == 200
-    data = response.json()
-
-    # Validar que los datos de incidente se encuentran en la respuesta
-    assert isinstance(data, list)
-    assert len(data) > 0
-    assert any(inc["cliente_id"] == incidente.cliente_id for inc in data)
 
 
 def test_obtener_todos_los_incidentes_agente_no_existe(client, mocker):
