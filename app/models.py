@@ -59,6 +59,6 @@ class ProblemaComun(SQLModel, table=True):
 class LogIncidente(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     incidente_id: int = Field(index=True)
-    cuerpo_completo: str
+    cuerpo_completo: str = Field(sa_column=Column(TEXT))
     fecha_cambio: datetime = Field(default_factory=datetime.utcnow)
     origen_cambio: str  

@@ -1,7 +1,7 @@
 services:
   redis:
     image: redis:alpine
-    container_name: ${DOCKER_REDIS_SERVICE_NAME}
+    container_name: redis
     networks:
       - backend
     ports:
