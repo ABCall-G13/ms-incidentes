@@ -1,8 +1,13 @@
 # incidentes/test/test_routes.py
-from datetime import date
+from datetime import date, datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock
 from fastapi import status
+from app.database import get_session_replica
 from app.models import Incidente, Categoria, Canal, Estado, Prioridad, ProblemaComun
 from uuid import uuid4
+from jose import JWTError, jwt
+
+from app.security import ALGORITHM, SECRET_KEY
 
 # Prueba para verificar que la API está funcionando correctamente
 def test_health_check(client):
@@ -65,20 +70,39 @@ def test_obtener_incidente(client):
     assert data["solucion"] is None
 
 # Prueba para obtener todos los incidentes
-def test_obtener_todos_los_incidentes(client, session, incidente):
-    # Agregamos el incidente a la base de datos de prueba
+def test_obtener_todos_los_incidentes(client, session, incidente, mocker):
+    # Add the incident to the test database
     session.add(incidente)
     session.commit()
 
-    response = client.get("/incidentes")
+    # Create a JWT token with the required claims
+    email = "test@example.com"
+    token_data = {
+        "sub": email,
+        "exp": datetime.utcnow() + timedelta(minutes=30),
+    }
+    token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+
+    # Mock the 'verificar_cliente_existente' async function
+    expected_nit = incidente.cliente_id  # Assuming 'cliente_id' is the NIT
+    mock_verificar_cliente = AsyncMock(return_value=expected_nit)
+    mocker.patch("app.routes.verificar_cliente_existente", mock_verificar_cliente)
+
+    # Prepare the headers with the Authorization token
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    # Send the GET request with headers
+    response = client.get("/incidentes", headers=headers)
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
 
-    # Validar que la respuesta sea una lista con al menos un incidente
+    # Validate that the response is a list with at least one incident
     assert isinstance(data, list)
     assert len(data) > 0
 
-    # Validar que los datos del primer incidente sean correctos
+    # Validate that the data of the first incident is correct
     incidente_obtenido = data[0]
     assert incidente_obtenido["cliente_id"] == incidente.cliente_id
     assert incidente_obtenido["description"] == incidente.description
@@ -168,11 +192,43 @@ def test_obtener_incidente_not_found(client, mocker):
 
 
 def test_obtener_todos_los_incidentes_internal_server_error(client, mocker):
-    mocker.patch("sqlmodel.Session.exec", side_effect=Exception("Database error"))
+    # Create a JWT token with the required claims
+    email = "test@example.com"
+    token_data = {
+        "sub": email,
+        "exp": datetime.utcnow() + timedelta(minutes=30),
+    }
+    token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
 
-    response = client.get("/incidentes")
-    assert response.status_code == 500
+    # Mock the 'verificar_cliente_existente' async function
+    expected_nit = "some-nit-value"
+    mock_verificar_cliente = AsyncMock(return_value=expected_nit)
+    mocker.patch("app.routes.verificar_cliente_existente", mock_verificar_cliente)
+
+    # Create a mock session where exec raises an exception
+    mock_session = MagicMock()
+    mock_session.exec.side_effect = Exception("Database error")
+
+    # Override the 'get_session_replica' dependency to return the mock session
+    def mock_get_session_replica():
+        yield mock_session
+
+    # Use the 'client' fixture's 'app' attribute to override dependencies
+    app = client.app
+    app.dependency_overrides[get_session_replica] = mock_get_session_replica
+
+    # Prepare the headers with the Authorization token
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    # Send the GET request with headers
+    response = client.get("/incidentes", headers=headers)
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert "Error al obtener incidentes" in response.json()["detail"]
+
+    # Clean up the dependency override
+    app.dependency_overrides.pop(get_session_replica)
 
 
 def test_obtener_incidente_por_radicado_not_found(client, mocker):
