@@ -57,8 +57,6 @@ async def obtener_todos_los_incidentes(
     client_token: ClientToken = Depends(get_current_client_token)
 ):
     try:
-        print(request.headers)
-
         try:
             nit_cliente = await verificar_cliente_existente(client_token.email, client_token.token)
             statement = select(Incidente).where(Incidente.cliente_id == nit_cliente)
