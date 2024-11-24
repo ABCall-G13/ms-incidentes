@@ -27,4 +27,4 @@ WORKDIR /app
 
 EXPOSE 8080
 
-ENTRYPOINT ["/venv/bin/python", "-Xfrozen_modules=off", "-m", "debugpy", "--listen", "0.0.0.0:5678", "--wait-for-client", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
+ENTRYPOINT ["/venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
