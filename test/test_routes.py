@@ -135,6 +135,52 @@ def test_obtener_todos_los_incidentes_agente_no_existe(client, mocker):
     assert response.json()["detail"] == "Error al obtener incidentes"
 
 
+def test_obtener_valores_permitidos(client):
+    response = client.get("/incidentes/fields")
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+    # Validar que todas las categorías, prioridades, canales y estados están presentes
+    assert "categoria" in data
+    assert "prioridad" in data
+    assert "canal" in data
+    assert "estado" in data
+
+    # Validar que las listas de valores no están vacías
+    assert len(data["categoria"]) > 0
+    assert len(data["prioridad"]) > 0
+    assert len(data["canal"]) > 0
+    assert len(data["estado"]) > 0
+
+
+def test_crear_incidente_error(client, mocker):
+    # Mock para forzar un error en la creación del incidente
+    mock_create_incidente_cache = mocker.patch("app.routes.create_incidente_cache")
+    mock_create_incidente_cache.side_effect = Exception("Error inesperado en la creación del incidente")
+
+    incidente_data = {
+        "description": "Test incident",
+        "categoria": "acceso",
+        "prioridad": "alta",
+        "canal": "llamada",
+        "cliente_id": 1,
+        "estado": "abierto",
+        "fecha_creacion": None,
+        "fecha_cierre": None,
+        "solucion": None,
+        "identificacion_usuario": "123456789"
+    }
+
+    response = client.post("/incidente", json=incidente_data)
+    
+    # Validar que el código de error es 500
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    # Validar el mensaje de error devuelto
+    assert response.json()["detail"] == "Error inesperado en la creación del incidente"
+
+
+
 # Prueba para solucionar un incidente
 def test_solucionar_incidente(client, session, incidente):
     # Agregamos el incidente a la base de datos de prueba
