@@ -13,6 +13,8 @@ class ClientToken:
         self.token = token
 
 def get_current_client_token(request: Request, db: Session = Depends(get_session)) -> ClientToken:
+
+    print("get_current_client_token", request.headers)
     credentials_exception = HTTPException(
         status_code=401,
         detail="No se pudieron validar las credenciales",
