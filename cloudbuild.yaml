@@ -76,6 +76,27 @@ steps:
       - '--min-instances=3'
       - '--max-instances=5'
 
+  # Create Health Check
+  - id: create-health-check
+    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if ! gcloud compute health-checks describe $_SERVICE_NAME-health-check > /dev/null 2>&1; then
+          echo "Creating Health Check $_SERVICE_NAME-health-check...";
+          gcloud compute health-checks create http $_SERVICE_NAME-health-check \
+            --request-path=/healthz \
+            --port=80 \
+            --check-interval=10s \
+            --timeout=5s \
+            --unhealthy-threshold=3 \
+            --healthy-threshold=2;
+        else
+          echo "Health Check $_SERVICE_NAME-health-check already exists. Skipping creation.";
+        fi
+
+  # Create Backend Service
   - id: create-backend-service
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
@@ -84,7 +105,8 @@ steps:
       - |
         if ! gcloud compute backend-services describe $_SERVICE_NAME-backend --global > /dev/null 2>&1; then
           echo "Creating backend service $_SERVICE_NAME-backend...";
-          gcloud compute backend-services create $_SERVICE_NAME-backend --global --protocol HTTP;
+          gcloud compute backend-services create $_SERVICE_NAME-backend --global --protocol HTTP \
+            --health-checks=$_SERVICE_NAME-health-check;
         else
           echo "Backend service $_SERVICE_NAME-backend already exists. Skipping creation.";
         fi
@@ -153,6 +175,17 @@ steps:
         else
           echo "NEG $_SERVICE_NAME-secondary already attached to backend service. Skipping.";
         fi
+
+  - id: configure-traffic-splitting
+    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Configuring traffic splitting...";
+        gcloud compute backend-services update $_SERVICE_NAME-backend --global \
+          --backends=name=$_SERVICE_NAME-primary,capacityScaler=0.5,region=$_PRIMARY_REGION \
+          --backends=name=$_SERVICE_NAME-secondary,capacityScaler=0.5,region=$_SECONDARY_REGION;
 
   - id: create-http-proxy
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
