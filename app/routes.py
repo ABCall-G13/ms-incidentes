@@ -78,17 +78,20 @@ async def obtener_todos_los_incidentes(
     try:
         try:
             id_cliente = await verificar_cliente_existente(client_token.email, client_token.token)
+            print("Cliente encontrado:", id_cliente)
             statement = select(Incidente).where(
                 Incidente.cliente_id == id_cliente)
         except HTTPException as client_exception:
             if client_exception.status_code == 404:
                 # Si no es un cliente, intentar verificar si es un agente
                 nit_agente = await verificar_agente_existente(client_token.email, client_token.token)
+                print("Agente encontrado:", nit_agente)
                 statement = select(Incidente)
             else:
                 raise client_exception
 
         results = session.exec(statement).all()
+        print("Incidentes encontrados:", len(results))
         return results
     except Exception as e:
         raise HTTPException(
