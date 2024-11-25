@@ -80,26 +80,6 @@ steps:
       - '--min-instances=3'
       - '--max-instances=5'
 
-  # Create Health Check
-  - id: create-health-check
-    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        if ! gcloud compute health-checks describe $_SERVICE_NAME-health-check > /dev/null 2>&1; then
-          echo "Creating Health Check $_SERVICE_NAME-health-check...";
-          gcloud compute health-checks create http $_SERVICE_NAME-health-check \
-            --request-path=/healthz \
-            --port=80 \
-            --check-interval=10s \
-            --timeout=5s \
-            --unhealthy-threshold=3 \
-            --healthy-threshold=2;
-        else
-          echo "Health Check $_SERVICE_NAME-health-check already exists. Skipping creation.";
-        fi
-
   # Create Backend Service
   - id: create-backend-service
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -109,8 +89,7 @@ steps:
       - |
         if ! gcloud compute backend-services describe $_SERVICE_NAME-backend --global > /dev/null 2>&1; then
           echo "Creating backend service $_SERVICE_NAME-backend...";
-          gcloud compute backend-services create $_SERVICE_NAME-backend --global --protocol HTTP \
-            --health-checks=$_SERVICE_NAME-health-check;
+          gcloud compute backend-services create $_SERVICE_NAME-backend --global --protocol HTTP
         else
           echo "Backend service $_SERVICE_NAME-backend already exists. Skipping creation.";
         fi
