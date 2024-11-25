@@ -75,118 +75,110 @@ steps:
       - '--vpc-connector=$_VPC_CONNECTOR-$_SECONDARY_REGION'
       - '--min-instances=3'
       - '--max-instances=5'
-    
-  
+
   - id: create-backend-service
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'gcloud'
+    entrypoint: 'bash'
     args:
-      - 'compute'
-      - 'backend-services'
-      - 'create'
-      - '$_SERVICE_NAME-backend'
-      - '--global'
-      - '--protocol'
-      - 'HTTP'
+      - '-c'
+      - |
+        if ! gcloud compute backend-services describe $_SERVICE_NAME-backend --global > /dev/null 2>&1; then
+          echo "Creating backend service $_SERVICE_NAME-backend...";
+          gcloud compute backend-services create $_SERVICE_NAME-backend --global --protocol HTTP;
+        else
+          echo "Backend service $_SERVICE_NAME-backend already exists. Skipping creation.";
+        fi
 
-  # Step to create a URL map
   - id: create-url-map
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'gcloud'
+    entrypoint: 'bash'
     args:
-      - 'compute'
-      - 'url-maps'
-      - 'create'
-      - '$_SERVICE_NAME-url-map'
-      - '--default-service'
-      - '$_SERVICE_NAME-backend' 
+      - '-c'
+      - |
+        if ! gcloud compute url-maps describe $_SERVICE_NAME-url-map > /dev/null 2>&1; then
+          echo "Creating URL map $_SERVICE_NAME-url-map...";
+          gcloud compute url-maps create $_SERVICE_NAME-url-map --default-service $_SERVICE_NAME-backend;
+        else
+          echo "URL map $_SERVICE_NAME-url-map already exists. Skipping creation.";
+        fi
 
-  # Step to create NEGs (Network Endpoint Groups) in multiple regions
   - id: create-neg-primary
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'gcloud'
+    entrypoint: 'bash'
     args:
-      - 'compute'
-      - 'network-endpoint-groups'
-      - 'create'
-      - '$_SERVICE_NAME-primary'
-      - '--region'
-      - '$_PRIMARY_REGION'
-      - '--network-endpoint-type'
-      - 'SERVERLESS'
-      - '--cloud-run-service'
-      - '$_SERVICE_NAME'
+      - '-c'
+      - |
+        if ! gcloud compute network-endpoint-groups describe $_SERVICE_NAME-primary --region=$_PRIMARY_REGION > /dev/null 2>&1; then
+          echo "Creating NEG $_SERVICE_NAME-primary...";
+          gcloud compute network-endpoint-groups create $_SERVICE_NAME-primary --region $_PRIMARY_REGION --network-endpoint-type SERVERLESS --cloud-run-service $_SERVICE_NAME;
+        else
+          echo "NEG $_SERVICE_NAME-primary already exists. Skipping creation.";
+        fi
 
   - id: create-neg-secondary
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'gcloud'
+    entrypoint: 'bash'
     args:
-      - 'compute'
-      - 'network-endpoint-groups'
-      - 'create'
-      - '$_SERVICE_NAME-secondary'
-      - '--region'
-      - '$_SECONDARY_REGION'
-      - '--network-endpoint-type'
-      - 'SERVERLESS'
-      - '--cloud-run-service'
-      - '$_SERVICE_NAME'
+      - '-c'
+      - |
+        if ! gcloud compute network-endpoint-groups describe $_SERVICE_NAME-secondary --region=$_SECONDARY_REGION > /dev/null 2>&1; then
+          echo "Creating NEG $_SERVICE_NAME-secondary...";
+          gcloud compute network-endpoint-groups create $_SERVICE_NAME-secondary --region $_SECONDARY_REGION --network-endpoint-type SERVERLESS --cloud-run-service $_SERVICE_NAME;
+        else
+          echo "NEG $_SERVICE_NAME-secondary already exists. Skipping creation.";
+        fi
 
-  # Step to attach NEGs to backend service
   - id: attach-neg-primary
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'gcloud'
+    entrypoint: 'bash'
     args:
-      - 'compute'
-      - 'backend-services'
-      - 'add-backend'
-      - '$_SERVICE_NAME-backend'
-      - '--global'
-      - '--network-endpoint-group'
-      - '$_SERVICE_NAME-primary'
-      - '--network-endpoint-group-region'
-      - '$_PRIMARY_REGION'
+      - '-c'
+      - |
+        if ! gcloud compute backend-services get-health $_SERVICE_NAME-backend --global | grep $_SERVICE_NAME-primary > /dev/null 2>&1; then
+          echo "Attaching NEG $_SERVICE_NAME-primary to backend service...";
+          gcloud compute backend-services add-backend $_SERVICE_NAME-backend --global --network-endpoint-group $_SERVICE_NAME-primary --network-endpoint-group-region $_PRIMARY_REGION;
+        else
+          echo "NEG $_SERVICE_NAME-primary already attached to backend service. Skipping.";
+        fi
 
   - id: attach-neg-secondary
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'gcloud'
+    entrypoint: 'bash'
     args:
-      - 'compute'
-      - 'backend-services'
-      - 'add-backend'
-      - '$_SERVICE_NAME-backend'
-      - '--global'
-      - '--network-endpoint-group'
-      - '$_SERVICE_NAME-secondary'
-      - '--network-endpoint-group-region'
-      - '$_SECONDARY_REGION'
+      - '-c'
+      - |
+        if ! gcloud compute backend-services get-health $_SERVICE_NAME-backend --global | grep $_SERVICE_NAME-secondary > /dev/null 2>&1; then
+          echo "Attaching NEG $_SERVICE_NAME-secondary to backend service...";
+          gcloud compute backend-services add-backend $_SERVICE_NAME-backend --global --network-endpoint-group $_SERVICE_NAME-secondary --network-endpoint-group-region $_SECONDARY_REGION;
+        else
+          echo "NEG $_SERVICE_NAME-secondary already attached to backend service. Skipping.";
+        fi
 
-  # Step to create a target HTTP proxy
   - id: create-http-proxy
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'gcloud'
+    entrypoint: 'bash'
     args:
-      - 'compute'
-      - 'target-http-proxies'
-      - 'create'
-      - '$_SERVICE_NAME-http-proxy'
-      - '--url-map'
-      - '$_SERVICE_NAME-url-map'
+      - '-c'
+      - |
+        if ! gcloud compute target-http-proxies describe $_SERVICE_NAME-http-proxy > /dev/null 2>&1; then
+          echo "Creating HTTP proxy $_SERVICE_NAME-http-proxy...";
+          gcloud compute target-http-proxies create $_SERVICE_NAME-http-proxy --url-map $_SERVICE_NAME-url-map;
+        else
+          echo "HTTP proxy $_SERVICE_NAME-http-proxy already exists. Skipping creation.";
+        fi
 
-  # Step to create a global forwarding rule
   - id: create-forwarding-rule
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'gcloud'
+    entrypoint: 'bash'
     args:
-      - 'compute'
-      - 'forwarding-rules'
-      - 'create'
-      - '$_SERVICE_NAME-forwarding-rule'
-      - '--global'
-      - '--target-http-proxy'
-      - '$_SERVICE_NAME-http-proxy'
-      - '--ports'
-      - '80'
+      - '-c'
+      - |
+        if ! gcloud compute forwarding-rules describe $_SERVICE_NAME-forwarding-rule --global > /dev/null 2>&1; then
+          echo "Creating forwarding rule $_SERVICE_NAME-forwarding-rule...";
+          gcloud compute forwarding-rules create $_SERVICE_NAME-forwarding-rule --global --target-http-proxy $_SERVICE_NAME-http-proxy --ports 80;
+        else
+          echo "Forwarding rule $_SERVICE_NAME-forwarding-rule already exists. Skipping creation.";
+        fi
 
 options:
   logging: CLOUD_LOGGING_ONLY
