@@ -122,9 +122,7 @@ steps:
           gcloud compute backend-services add-backend $_SERVICE_NAME-backend --global \
             --network-endpoint-group $_SERVICE_NAME-primary \
             --network-endpoint-group-region $_PRIMARY_REGION \
-            --capacity-scaler=0.5 \
-            --balancing-mode UTILIZATION \
-            --max-utilization 0.8
+            --capacity-scaler=0.5
         fi
 
   - id: attach-neg-secondary
@@ -141,9 +139,7 @@ steps:
           gcloud compute backend-services add-backend $_SERVICE_NAME-backend --global \
             --network-endpoint-group $_SERVICE_NAME-secondary \
             --network-endpoint-group-region $_SECONDARY_REGION \
-            --capacity-scaler=0.5 \
-            --balancing-mode UTILIZATION \
-            --max-utilization 0.8
+            --capacity-scaler=0.5
         fi
 
   # Create HTTP proxy
