@@ -17,9 +17,9 @@ async def verificar_cliente_existente(email: str, token: str) -> str:
             raise HTTPException(status_code=response.status_code, detail="Error al verificar el cliente")
         
         cliente_data = response.json()
-        nit = cliente_data.get("nit")
+        id = cliente_data.get("id")
         
-        return nit
+        return id
 
 async def verificar_agente_existente(email: str, token: str) -> str:
     base_url = URL(config.URL_SERVICE_CLIENT)
