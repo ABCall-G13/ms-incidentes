@@ -99,7 +99,7 @@ steps:
       - 'create'
       - '$_SERVICE_NAME-url-map'
       - '--default-service'
-      - '$_SERVICE_NAME'
+      - '$_SERVICE_NAME-backend' 
 
   # Step to create NEGs (Network Endpoint Groups) in multiple regions
   - id: create-neg-primary
