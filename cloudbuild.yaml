@@ -129,40 +129,6 @@ steps:
           echo "URL map $_SERVICE_NAME-url-map already exists. Skipping creation.";
         fi
 
-  # Attach NEG for primary region
-  - id: attach-neg-primary
-    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        echo "Verificando si el NEG $_SERVICE_NAME-primary ya está adjunto al servicio backend $_SERVICE_NAME-backend..."
-        if gcloud compute backend-services describe $_SERVICE_NAME-backend --global --format="json" | jq -r '.backends[].group' | grep -q "https://compute.googleapis.com/compute/v1/projects/$_PROJECT_ID/regions/$_PRIMARY_REGION/networkEndpointGroups/$_SERVICE_NAME-primary"; then
-          echo "NEG $_SERVICE_NAME-primary ya está adjunto al servicio backend $_SERVICE_NAME-backend. Omitiendo."
-        else
-          echo "Adjuntando NEG $_SERVICE_NAME-primary al servicio backend $_SERVICE_NAME-backend..."
-          gcloud compute backend-services add-backend $_SERVICE_NAME-backend --global \
-            --network-endpoint-group $_SERVICE_NAME-primary \
-            --network-endpoint-group-region $_PRIMARY_REGION
-        fi
-
-  # Attach NEG for secondary region
-  - id: attach-neg-secondary
-    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        echo "Verificando si el NEG $_SERVICE_NAME-secondary ya está adjunto al servicio backend $_SERVICE_NAME-backend..."
-        if gcloud compute backend-services describe $_SERVICE_NAME-backend --global --format="json" | jq -r '.backends[].group' | grep -q "https://compute.googleapis.com/compute/v1/projects/$_PROJECT_ID/regions/$_SECONDARY_REGION/networkEndpointGroups/$_SERVICE_NAME-secondary"; then
-          echo "NEG $_SERVICE_NAME-secondary ya está adjunto al servicio backend $_SERVICE_NAME-backend. Omitiendo."
-        else
-          echo "Adjuntando NEG $_SERVICE_NAME-secondary al servicio backend $_SERVICE_NAME-backend..."
-          gcloud compute backend-services add-backend $_SERVICE_NAME-backend --global \
-            --network-endpoint-group $_SERVICE_NAME-secondary \
-            --network-endpoint-group-region $_SECONDARY_REGION
-        fi
-
   - id: install-jq
     name: 'ubuntu'
     entrypoint: 'bash'
@@ -171,7 +137,7 @@ steps:
       - |
         apt-get update && apt-get install -y jq
 
-
+  # Adjuntar NEG para la región primaria
   - id: attach-neg-primary
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
