@@ -95,7 +95,7 @@ steps:
           echo "Reserving global static IP..."
           gcloud compute addresses create "${_SERVICE_NAME}-ip" \
             --global \
-            --network-tier=STANDARD
+            --network-tier=PREMIUM
         else
           echo "Global static IP '${_SERVICE_NAME}-ip' already exists."
         fi
