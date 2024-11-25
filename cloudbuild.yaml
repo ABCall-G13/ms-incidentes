@@ -108,15 +108,14 @@ steps:
       - '-c'
       - |
         for region in $_PRIMARY_REGION $_SECONDARY_REGION; do
-          NEG_NAME="${_SERVICE_NAME}-${region}-neg"
-          if ! gcloud compute network-endpoint-groups describe "$NEG_NAME" --region="$region" &> /dev/null; then
-            echo "Creating Serverless NEG $NEG_NAME in $region..."
-            gcloud compute network-endpoint-groups create "$NEG_NAME" \
+          if ! gcloud compute network-endpoint-groups describe "${_SERVICE_NAME}-${region}-neg" --region="$region" &> /dev/null; then
+            echo "Creating Serverless NEG ${_SERVICE_NAME}-${region}-neg in $region..."
+            gcloud compute network-endpoint-groups create "${_SERVICE_NAME}-${region}-neg" \
               --region="$region" \
               --network-endpoint-type=serverless \
               --cloud-run-service=$_SERVICE_NAME
           else
-            echo "Serverless NEG $NEG_NAME already exists in $region."
+            echo "Serverless NEG $${_SERVICE_NAME}-${region}-neg already exists in $region."
           fi
         done
 
@@ -134,11 +133,10 @@ steps:
             --load-balancing-scheme=EXTERNAL_MANAGED \
             --protocol=HTTP
           for region in $_PRIMARY_REGION $_SECONDARY_REGION; do
-            NEG_NAME="${_SERVICE_NAME}-${region}-neg"
-            echo "Adding NEG $NEG_NAME to the global backend service..."
-            gcloud compute backend-services add-backend "${_SERVICE_NAME}-global-backend" \
+            echo "Adding NEG ${_SERVICE_NAME}-${region}-neg to the global backend service..."
+            gcloud compute backend-services add-backend "${_SERVICE_NAME}-${region}-neg-global-backend" \
               --global \
-              --network-endpoint-group="$NEG_NAME" \
+              --network-endpoint-group="${_SERVICE_NAME}-${region}-neg" \
               --network-endpoint-group-region="$region"
           done
         else
