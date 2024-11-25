@@ -125,7 +125,6 @@ steps:
             --capacity-scaler=0.5 \
             --balancing-mode RATE \
             --max-rate-per-endpoint=10 \
-            --max-rate=1000 \
             --max-utilization=0.8
         fi
 
@@ -146,7 +145,6 @@ steps:
             --capacity-scaler=0.5 \
             --balancing-mode RATE \
             --max-rate-per-endpoint=10 \
-            --max-rate=1000 \
             --max-utilization=0.8
         fi
 
