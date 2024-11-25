@@ -1,4 +1,5 @@
 steps:
+  # Step to install dependencies
   - id: pip-install
     name: 'python:3.9-slim'
     entrypoint: 'bash'
@@ -9,6 +10,7 @@ steps:
         . venv/bin/activate && \
         pip install -r requirements.txt
 
+  # Step to build the Docker image
   - id: build
     name: 'gcr.io/cloud-builders/docker'
     args:
@@ -19,12 +21,14 @@ steps:
       - '$_AR_HOSTNAME/$_PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:$COMMIT_SHA'
       - '.'
 
+  # Step to push the Docker image
   - id: push
     name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
       - '$_AR_HOSTNAME/$_PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:$COMMIT_SHA'
 
+  # Step to get secrets
   - id: get-secret
     name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
@@ -111,6 +115,7 @@ steps:
           echo "Backend service $_SERVICE_NAME-backend already exists. Skipping creation.";
         fi
 
+  # Create URL Map
   - id: create-url-map
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
@@ -124,6 +129,7 @@ steps:
           echo "URL map $_SERVICE_NAME-url-map already exists. Skipping creation.";
         fi
 
+  # Create NEG for primary region
   - id: create-neg-primary
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
@@ -137,6 +143,7 @@ steps:
           echo "NEG $_SERVICE_NAME-primary already exists. Skipping creation.";
         fi
 
+  # Create NEG for secondary region
   - id: create-neg-secondary
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
@@ -150,43 +157,52 @@ steps:
           echo "NEG $_SERVICE_NAME-secondary already exists. Skipping creation.";
         fi
 
+  # Attach NEG for primary region
   - id: attach-neg-primary
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        if ! gcloud compute backend-services get-health $_SERVICE_NAME-backend --global | grep $_SERVICE_NAME-primary > /dev/null 2>&1; then
+        if ! gcloud compute backend-services describe $_SERVICE_NAME-backend --global --format="json" | grep "\"$_SERVICE_NAME-primary\"" > /dev/null 2>&1; then
           echo "Attaching NEG $_SERVICE_NAME-primary to backend service...";
           gcloud compute backend-services add-backend $_SERVICE_NAME-backend --global --network-endpoint-group $_SERVICE_NAME-primary --network-endpoint-group-region $_PRIMARY_REGION;
         else
           echo "NEG $_SERVICE_NAME-primary already attached to backend service. Skipping.";
         fi
 
+  # Attach NEG for secondary region
   - id: attach-neg-secondary
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        if ! gcloud compute backend-services get-health $_SERVICE_NAME-backend --global | grep $_SERVICE_NAME-secondary > /dev/null 2>&1; then
+        if ! gcloud compute backend-services describe $_SERVICE_NAME-backend --global --format="json" | grep "\"$_SERVICE_NAME-secondary\"" > /dev/null 2>&1; then
           echo "Attaching NEG $_SERVICE_NAME-secondary to backend service...";
           gcloud compute backend-services add-backend $_SERVICE_NAME-backend --global --network-endpoint-group $_SERVICE_NAME-secondary --network-endpoint-group-region $_SECONDARY_REGION;
         else
           echo "NEG $_SERVICE_NAME-secondary already attached to backend service. Skipping.";
         fi
 
+  # Configure traffic splitting
   - id: configure-traffic-splitting
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        echo "Configuring traffic splitting...";
-        gcloud compute backend-services update $_SERVICE_NAME-backend --global \
-          --backends=name=$_SERVICE_NAME-primary,capacityScaler=0.5,region=$_PRIMARY_REGION \
-          --backends=name=$_SERVICE_NAME-secondary,capacityScaler=0.5,region=$_SECONDARY_REGION;
+        echo "Verificando configuración de división de tráfico...";
+        if ! gcloud compute backend-services describe $_SERVICE_NAME-backend --global --format="json" | grep "\"$_SERVICE_NAME-primary\"" > /dev/null 2>&1 || ! gcloud compute backend-services describe $_SERVICE_NAME-backend --global --format="json" | grep "\"$_SERVICE_NAME-secondary\"" > /dev/null 2>&1; then
+          echo "Configuring traffic splitting...";
+          gcloud compute backend-services update $_SERVICE_NAME-backend --global \
+            --backends=name=$_SERVICE_NAME-primary,capacityScaler=0.5,region=$_PRIMARY_REGION \
+            --backends=name=$_SERVICE_NAME-secondary,capacityScaler=0.5,region=$_SECONDARY_REGION;
+        else
+          echo "La configuración de división de tráfico ya existe. Omitiendo.";
+        fi
 
+  # Create HTTP proxy
   - id: create-http-proxy
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
@@ -200,6 +216,7 @@ steps:
           echo "HTTP proxy $_SERVICE_NAME-http-proxy already exists. Skipping creation.";
         fi
 
+  # Create forwarding rule
   - id: create-forwarding-rule
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
