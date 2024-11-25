@@ -121,7 +121,7 @@ steps:
           echo "Adjuntando NEG $_SERVICE_NAME-primary al servicio backend $_SERVICE_NAME-backend..."
           gcloud compute backend-services add-backend $_SERVICE_NAME-backend --global \
             --network-endpoint-group $_SERVICE_NAME-primary \
-            --network-endpoint-group-region $_PRIMARY_REGION
+            --network-endpoint-group-region $_PRIMARY_REGION \
             --capacity-scaler=0.5
         fi
 
@@ -138,7 +138,7 @@ steps:
           echo "Adjuntando NEG $_SERVICE_NAME-secondary al servicio backend $_SERVICE_NAME-backend..."
           gcloud compute backend-services add-backend $_SERVICE_NAME-backend --global \
             --network-endpoint-group $_SERVICE_NAME-secondary \
-            --network-endpoint-group-region $_SECONDARY_REGION
+            --network-endpoint-group-region $_SECONDARY_REGION \
             --capacity-scaler=0.5
         fi
 
