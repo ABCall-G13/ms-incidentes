@@ -122,6 +122,7 @@ steps:
           gcloud compute backend-services add-backend $_SERVICE_NAME-backend --global \
             --network-endpoint-group $_SERVICE_NAME-primary \
             --network-endpoint-group-region $_PRIMARY_REGION
+            --capacity-scaler=0.5
         fi
 
   - id: attach-neg-secondary
@@ -138,32 +139,8 @@ steps:
           gcloud compute backend-services add-backend $_SERVICE_NAME-backend --global \
             --network-endpoint-group $_SERVICE_NAME-secondary \
             --network-endpoint-group-region $_SECONDARY_REGION
+            --capacity-scaler=0.5
         fi
-
-  # Configure traffic splitting
-  - id: configure-traffic-splitting
-    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        echo "Verificando configuración de división de tráfico..."
-
-        # Configurar capacidad para el NEG primario
-        echo "Configurando capacidad para el NEG ${_SERVICE_NAME}-primary..."
-        gcloud compute backend-services update-backend ${_SERVICE_NAME}-backend \
-          --region=${_PRIMARY_REGION} \
-          --network-endpoint-group=${_SERVICE_NAME}-primary \
-          --capacity-scaler=0.5
-
-        # Configurar capacidad para el NEG secundario
-        echo "Configurando capacidad para el NEG ${_SERVICE_NAME}-secondary..."
-        gcloud compute backend-services update-backend ${_SERVICE_NAME}-backend \
-          --region=${_SECONDARY_REGION} \
-          --network-endpoint-group=${_SERVICE_NAME}-secondary \
-          --capacity-scaler=0.5
-
-        echo "Configuración de división de tráfico completada."
 
   # Create HTTP proxy
   - id: create-http-proxy
