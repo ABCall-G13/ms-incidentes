@@ -123,7 +123,8 @@ steps:
             --network-endpoint-group $_SERVICE_NAME-primary \
             --network-endpoint-group-region $_PRIMARY_REGION \
             --capacity-scaler=0.5 \
-            --balancing-mode RATE
+            --balancing-mode UTILIZATION \
+            --max-utilization 0.8
         fi
 
   - id: attach-neg-secondary
@@ -141,7 +142,8 @@ steps:
             --network-endpoint-group $_SERVICE_NAME-secondary \
             --network-endpoint-group-region $_SECONDARY_REGION \
             --capacity-scaler=0.5 \
-            --balancing-mode RATE
+            --balancing-mode UTILIZATION \
+            --max-utilization 0.8
         fi
 
   # Create HTTP proxy
