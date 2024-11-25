@@ -130,7 +130,7 @@ steps:
             --protocol=HTTP
           for region in $_PRIMARY_REGION $_SECONDARY_REGION; do
             echo "Adding NEG ${_SERVICE_NAME}-${region}-neg to the global backend service..."
-            gcloud compute backend-services add-backend "${_SERVICE_NAME}-${region}-neg-global-backend" \
+            gcloud compute backend-services add-backend "${_SERVICE_NAME}-global-backend" \
               --global \
               --network-endpoint-group="${_SERVICE_NAME}-${region}-neg" \
               --network-endpoint-group-region="$region"
@@ -138,6 +138,7 @@ steps:
         else
           echo "Global Backend Service '${_SERVICE_NAME}-global-backend' already exists."
         fi
+
 
   # Crear un URL map global
   - id: create-global-url-map
