@@ -126,12 +126,7 @@ steps:
             --balancing-mode RATE \
             --max-rate-per-endpoint=10 \
             --max-rate=1000 \
-            --max-utilization=0.8 \
-            --min-instances=3 \
-            --max-instances=5 \
-            --timeout=30s \
-            --connection-draining-timeout=60s \
-            --warmup-timeout=300s
+            --max-utilization=0.8
         fi
 
   - id: attach-neg-secondary
@@ -152,12 +147,7 @@ steps:
             --balancing-mode RATE \
             --max-rate-per-endpoint=10 \
             --max-rate=1000 \
-            --max-utilization=0.8 \
-            --min-instances=3 \
-            --max-instances=5 \
-            --timeout=30s \
-            --connection-draining-timeout=60s \
-            --warmup-timeout=300s
+            --max-utilization=0.8
         fi
 
   # Create HTTP proxy
