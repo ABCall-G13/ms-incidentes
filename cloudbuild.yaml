@@ -84,20 +84,20 @@ steps:
       - '--cpu=2'
       - '--memory=2Gi'
 
+  # Reservar una dirección IP global estática para el balanceador de carga
   - id: reserve-global-static-ip
     name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        IP_NAME="${_SERVICE_NAME}-ip"
-        if ! gcloud compute addresses describe "$IP_NAME" --global &> /dev/null; then
+        if ! gcloud compute addresses describe "${_SERVICE_NAME}-ip" --global &> /dev/null; then
           echo "Reserving global static IP..."
-          gcloud compute addresses create "$IP_NAME" \
+          gcloud compute addresses create "${_SERVICE_NAME}-ip" \
             --global \
             --network-tier=STANDARD
         else
-          echo "Global static IP $IP_NAME already exists."
+          echo "Global static IP '${_SERVICE_NAME}-ip' already exists."
         fi
 
   # Crear NEGs sin servidores para cada región
@@ -120,71 +120,63 @@ steps:
           fi
         done
 
-  # Crear un backend service global si no existe
+  # Crear un servicio de backend global
   - id: create-global-backend-service
     name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        BACKEND_NAME="${_SERVICE_NAME}-global-backend"
-        if ! gcloud compute backend-services describe "$BACKEND_NAME" --global &> /dev/null; then
+        if ! gcloud compute backend-services describe "${_SERVICE_NAME}-global-backend" --global &> /dev/null; then
           echo "Creating Global Backend Service..."
-          gcloud compute backend-services create "$BACKEND_NAME" \
+          gcloud compute backend-services create "${_SERVICE_NAME}-global-backend" \
             --global \
             --load-balancing-scheme=EXTERNAL_MANAGED \
             --protocol=HTTP
-          
           for region in $_PRIMARY_REGION $_SECONDARY_REGION; do
             NEG_NAME="${_SERVICE_NAME}-${region}-neg"
-            echo "Adding NEG $NEG_NAME to $BACKEND_NAME..."
-            gcloud compute backend-services add-backend "$BACKEND_NAME" \
+            echo "Adding NEG $NEG_NAME to the global backend service..."
+            gcloud compute backend-services add-backend "${_SERVICE_NAME}-global-backend" \
               --global \
               --network-endpoint-group="$NEG_NAME" \
               --network-endpoint-group-region="$region"
           done
         else
-          echo "Global Backend Service $BACKEND_NAME already exists."
+          echo "Global Backend Service '${_SERVICE_NAME}-global-backend' already exists."
         fi
 
-  # Crear un URL map global si no existe
+  # Crear un URL map global
   - id: create-global-url-map
     name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        URL_MAP_NAME="${_SERVICE_NAME}-global-url-map"
-        BACKEND_NAME="${_SERVICE_NAME}-global-backend"
-        if ! gcloud compute url-maps describe "$URL_MAP_NAME" --global &> /dev/null; then
+        if ! gcloud compute url-maps describe "${_SERVICE_NAME}-global-url-map" --global &> /dev/null; then
           echo "Creating Global URL Map..."
-          gcloud compute url-maps create "$URL_MAP_NAME" \
+          gcloud compute url-maps create "${_SERVICE_NAME}-global-url-map" \
             --global \
-            --default-service="$BACKEND_NAME"
+            --default-service="${_SERVICE_NAME}-global-backend"
         else
-          echo "Global URL Map $URL_MAP_NAME already exists."
+          echo "Global URL Map '${_SERVICE_NAME}-global-url-map' already exists."
         fi
 
-  # Crear una regla de reenvío global si no existe
+  # Crear una regla de reenvío global
   - id: create-global-forwarding-rule
     name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        FORWARDING_RULE_NAME="${_SERVICE_NAME}-forwarding-rule"
-        URL_MAP_NAME="${_SERVICE_NAME}-global-url-map"
-        IP_NAME="${_SERVICE_NAME}-ip"
-        if ! gcloud compute forwarding-rules describe "$FORWARDING_RULE_NAME" --global &> /dev/null; then
+        if ! gcloud compute forwarding-rules describe "${_SERVICE_NAME}-forwarding-rule" --global &> /dev/null; then
           echo "Creating Global Forwarding Rule..."
-          gcloud compute forwarding-rules create "$FORWARDING_RULE_NAME" \
+          gcloud compute forwarding-rules create "${_SERVICE_NAME}-forwarding-rule" \
             --global \
-            --target-http-proxy="$URL_MAP_NAME" \
-            --address="$IP_NAME" \
+            --target-http-proxy="${_SERVICE_NAME}-global-url-map" \
+            --address="${_SERVICE_NAME}-ip" \
             --ports=80
         else
-          echo "Global Forwarding Rule $FORWARDING_RULE_NAME already exists."
+          echo "Global Forwarding Rule '${_SERVICE_NAME}-forwarding-rule' already exists."
         fi
-
 options:
   logging: CLOUD_LOGGING_ONLY
