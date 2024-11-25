@@ -72,9 +72,22 @@ steps:
       - '$_PROJECT_ID'
       - '--set-cloudsql-instances'
       - '$_CLOUDSQL_INSTANCE'
-      - '--vpc-connector=$_VPC_CONNECTOR-$_SECONDARY_REGION'
+      - '--vpc-connector=$_VPC_CONNECTOR-$_PRIMARY_REGION'
       - '--min-instances=3'
       - '--max-instances=5'
+    
+  
+  - id: create-backend-service
+    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'compute'
+      - 'backend-services'
+      - 'create'
+      - '$_SERVICE_NAME-backend'
+      - '--global'
+      - '--protocol'
+      - 'HTTP'
 
   # Step to create a URL map
   - id: create-url-map
