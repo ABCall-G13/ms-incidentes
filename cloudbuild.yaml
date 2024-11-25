@@ -168,15 +168,23 @@ steps:
     args:
       - '-c'
       - |
-        echo "Verificando configuración de división de tráfico...";
-        if ! gcloud compute backend-services describe $_SERVICE_NAME-backend --global --format="json" | grep "\"$_SERVICE_NAME-primary\"" > /dev/null 2>&1 || ! gcloud compute backend-services describe $_SERVICE_NAME-backend --global --format="json" | grep "\"$_SERVICE_NAME-secondary\"" > /dev/null 2>&1; then
-          echo "Configuring traffic splitting...";
-          gcloud compute backend-services update $_SERVICE_NAME-backend --global \
-            --backends=name=$_SERVICE_NAME-primary,capacityScaler=0.5,region=$_PRIMARY_REGION \
-            --backends=name=$_SERVICE_NAME-secondary,capacityScaler=0.5,region=$_SECONDARY_REGION;
-        else
-          echo "La configuración de división de tráfico ya existe. Omitiendo.";
-        fi
+        echo "Verificando configuración de división de tráfico..."
+
+        # Configurar capacidad para el NEG primario
+        echo "Configurando capacidad para el NEG ${_SERVICE_NAME}-primary..."
+        gcloud compute backend-services update-backend ${_SERVICE_NAME}-backend --global \
+          --network-endpoint-group=${_SERVICE_NAME}-primary \
+          --network-endpoint-group-region=${_PRIMARY_REGION} \
+          --capacity-scaler=0.5
+
+        # Configurar capacidad para el NEG secundario
+        echo "Configurando capacidad para el NEG ${_SERVICE_NAME}-secondary..."
+        gcloud compute backend-services update-backend ${_SERVICE_NAME}-backend --global \
+          --network-endpoint-group=${_SERVICE_NAME}-secondary \
+          --network-endpoint-group-region=${_SECONDARY_REGION} \
+          --capacity-scaler=0.5
+
+        echo "Configuración de división de tráfico completada."
 
   # Create HTTP proxy
   - id: create-http-proxy
