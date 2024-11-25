@@ -156,6 +156,21 @@ steps:
           echo "Global URL Map '${_SERVICE_NAME}-global-url-map' already exists."
         fi
 
+  - id: create-global-http-proxy
+    name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if ! gcloud compute target-http-proxies describe "${_SERVICE_NAME}-global-http-proxy" --global &> /dev/null; then
+          echo "Creating Global HTTP Proxy..."
+          gcloud compute target-http-proxies create "${_SERVICE_NAME}-global-http-proxy" \
+            --url-map="${_SERVICE_NAME}-global-url-map" \
+            --global
+        else
+          echo "Global HTTP Proxy '${_SERVICE_NAME}-global-http-proxy' already exists."
+        fi
+
   # Crear una regla de reenvío global
   - id: create-global-forwarding-rule
     name: 'gcr.io/cloud-builders/gcloud'
@@ -167,7 +182,9 @@ steps:
           echo "Creating Global Forwarding Rule..."
           gcloud compute forwarding-rules create "${_SERVICE_NAME}-forwarding-rule" \
             --global \
-            --target-http-proxy="${_SERVICE_NAME}-global-url-map" \
+            --load-balancing-scheme=EXTERNAL_MANAGED \
+            --network-tier=PREMIUM \
+            --target-http-proxy="${_SERVICE_NAME}-global-http-proxy" \
             --address="${_SERVICE_NAME}-ip" \
             --ports=80
         else
