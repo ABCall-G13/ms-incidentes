@@ -84,98 +84,106 @@ steps:
       - '--cpu=2'
       - '--memory=2Gi'
 
-  # Create Backend Service
-  - id: create-backend-service
-    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  - id: reserve-global-static-ip
+    name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        if ! gcloud compute backend-services describe $_SERVICE_NAME-backend --global > /dev/null 2>&1; then
-          echo "Creating backend service $_SERVICE_NAME-backend...";
-          gcloud compute backend-services create $_SERVICE_NAME-backend --global --protocol HTTP
+        IP_NAME="${_SERVICE_NAME}-ip"
+        if ! gcloud compute addresses describe "$IP_NAME" --global &> /dev/null; then
+          echo "Reserving global static IP..."
+          gcloud compute addresses create "$IP_NAME" \
+            --global \
+            --network-tier=STANDARD
         else
-          echo "Backend service $_SERVICE_NAME-backend already exists. Skipping creation.";
+          echo "Global static IP $IP_NAME already exists."
         fi
 
-  # Create URL Map
-  - id: create-url-map
-    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  # Crear NEGs sin servidores para cada región
+  - id: create-serverless-negs
+    name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        if ! gcloud compute url-maps describe $_SERVICE_NAME-url-map > /dev/null 2>&1; then
-          echo "Creating URL map $_SERVICE_NAME-url-map...";
-          gcloud compute url-maps create $_SERVICE_NAME-url-map --default-service $_SERVICE_NAME-backend;
+        for region in $_PRIMARY_REGION $_SECONDARY_REGION; do
+          NEG_NAME="${_SERVICE_NAME}-${region}-neg"
+          if ! gcloud compute network-endpoint-groups describe "$NEG_NAME" --region="$region" &> /dev/null; then
+            echo "Creating Serverless NEG $NEG_NAME in $region..."
+            gcloud compute network-endpoint-groups create "$NEG_NAME" \
+              --region="$region" \
+              --network-endpoint-type=serverless \
+              --cloud-run-service=$_SERVICE_NAME
+          else
+            echo "Serverless NEG $NEG_NAME already exists in $region."
+          fi
+        done
+
+  # Crear un backend service global si no existe
+  - id: create-global-backend-service
+    name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        BACKEND_NAME="${_SERVICE_NAME}-global-backend"
+        if ! gcloud compute backend-services describe "$BACKEND_NAME" --global &> /dev/null; then
+          echo "Creating Global Backend Service..."
+          gcloud compute backend-services create "$BACKEND_NAME" \
+            --global \
+            --load-balancing-scheme=EXTERNAL_MANAGED \
+            --protocol=HTTP
+          
+          for region in $_PRIMARY_REGION $_SECONDARY_REGION; do
+            NEG_NAME="${_SERVICE_NAME}-${region}-neg"
+            echo "Adding NEG $NEG_NAME to $BACKEND_NAME..."
+            gcloud compute backend-services add-backend "$BACKEND_NAME" \
+              --global \
+              --network-endpoint-group="$NEG_NAME" \
+              --network-endpoint-group-region="$region"
+          done
         else
-          echo "URL map $_SERVICE_NAME-url-map already exists. Skipping creation.";
+          echo "Global Backend Service $BACKEND_NAME already exists."
         fi
 
-  - id: attach-neg-primary
-    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  # Crear un URL map global si no existe
+  - id: create-global-url-map
+    name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        echo "Verificando si el NEG $_SERVICE_NAME-primary ya está adjunto al servicio backend $_SERVICE_NAME-backend..."
-        if gcloud compute backend-services describe $_SERVICE_NAME-backend --global --format="json" | grep -q "\"https://www.googleapis.com/compute/v1/projects/$_PROJECT_ID/regions/$_PRIMARY_REGION/networkEndpointGroups/$_SERVICE_NAME-primary\""; then
-          echo "NEG $_SERVICE_NAME-primary ya está adjunto al servicio backend $_SERVICE_NAME-backend. Omitiendo."
+        URL_MAP_NAME="${_SERVICE_NAME}-global-url-map"
+        BACKEND_NAME="${_SERVICE_NAME}-global-backend"
+        if ! gcloud compute url-maps describe "$URL_MAP_NAME" --global &> /dev/null; then
+          echo "Creating Global URL Map..."
+          gcloud compute url-maps create "$URL_MAP_NAME" \
+            --global \
+            --default-service="$BACKEND_NAME"
         else
-          echo "Adjuntando NEG $_SERVICE_NAME-primary al servicio backend $_SERVICE_NAME-backend..."
-          gcloud compute backend-services add-backend $_SERVICE_NAME-backend --global \
-            --network-endpoint-group $_SERVICE_NAME-primary \
-            --network-endpoint-group-region $_PRIMARY_REGION \
-            --capacity-scaler=0.5 \
-            --balancing-mode CONNECTION \
-            --max-connections-per-endpoint 1000
+          echo "Global URL Map $URL_MAP_NAME already exists."
         fi
 
-  - id: attach-neg-secondary
-    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  # Crear una regla de reenvío global si no existe
+  - id: create-global-forwarding-rule
+    name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        echo "Verificando si el NEG $_SERVICE_NAME-secondary ya está adjunto al servicio backend $_SERVICE_NAME-backend..."
-        if gcloud compute backend-services describe $_SERVICE_NAME-backend --global --format="json" | grep -q "\"https://www.googleapis.com/compute/v1/projects/$_PROJECT_ID/regions/$_SECONDARY_REGION/networkEndpointGroups/$_SERVICE_NAME-secondary\""; then
-          echo "NEG $_SERVICE_NAME-secondary ya está adjunto al servicio backend $_SERVICE_NAME-backend. Omitiendo."
+        FORWARDING_RULE_NAME="${_SERVICE_NAME}-forwarding-rule"
+        URL_MAP_NAME="${_SERVICE_NAME}-global-url-map"
+        IP_NAME="${_SERVICE_NAME}-ip"
+        if ! gcloud compute forwarding-rules describe "$FORWARDING_RULE_NAME" --global &> /dev/null; then
+          echo "Creating Global Forwarding Rule..."
+          gcloud compute forwarding-rules create "$FORWARDING_RULE_NAME" \
+            --global \
+            --target-http-proxy="$URL_MAP_NAME" \
+            --address="$IP_NAME" \
+            --ports=80
         else
-          echo "Adjuntando NEG $_SERVICE_NAME-secondary al servicio backend $_SERVICE_NAME-backend..."
-          gcloud compute backend-services add-backend $_SERVICE_NAME-backend --global \
-            --network-endpoint-group $_SERVICE_NAME-secondary \
-            --network-endpoint-group-region $_SECONDARY_REGION \
-            --capacity-scaler=0.5 \
-            --balancing-mode CONNECTION \
-            --max-connections-per-endpoint 1000
-        fi
-
-  # Create HTTP proxy
-  - id: create-http-proxy
-    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        if ! gcloud compute target-http-proxies describe $_SERVICE_NAME-http-proxy > /dev/null 2>&1; then
-          echo "Creating HTTP proxy $_SERVICE_NAME-http-proxy...";
-          gcloud compute target-http-proxies create $_SERVICE_NAME-http-proxy --url-map $_SERVICE_NAME-url-map;
-        else
-          echo "HTTP proxy $_SERVICE_NAME-http-proxy already exists. Skipping creation.";
-        fi
-
-  # Create forwarding rule
-  - id: create-forwarding-rule
-    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        if ! gcloud compute forwarding-rules describe $_SERVICE_NAME-forwarding-rule --global > /dev/null 2>&1; then
-          echo "Creating forwarding rule $_SERVICE_NAME-forwarding-rule...";
-          gcloud compute forwarding-rules create $_SERVICE_NAME-forwarding-rule --global --target-http-proxy $_SERVICE_NAME-http-proxy --ports 80;
-        else
-          echo "Forwarding rule $_SERVICE_NAME-forwarding-rule already exists. Skipping creation.";
+          echo "Global Forwarding Rule $FORWARDING_RULE_NAME already exists."
         fi
 
 options:
