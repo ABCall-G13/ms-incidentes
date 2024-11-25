@@ -72,7 +72,7 @@ steps:
       - '$_PROJECT_ID'
       - '--set-cloudsql-instances'
       - '$_CLOUDSQL_INSTANCE'
-      - '--vpc-connector=$_VPC_CONNECTOR-$_PRIMARY_REGION'
+      - '--vpc-connector=$_VPC_CONNECTOR-$_SECONDARY_REGION'
       - '--min-instances=3'
       - '--max-instances=5'
 
