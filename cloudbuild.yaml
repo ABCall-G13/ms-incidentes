@@ -58,6 +58,8 @@ steps:
       - '--vpc-connector=$_VPC_CONNECTOR'
       - '--min-instances=3'
       - '--max-instances=5'
+      - '--cpu=2'
+      - '--memory=2Gi'
 
   # Deploy to the secondary region
   - id: deploy-region-secondary
@@ -79,6 +81,8 @@ steps:
       - '--vpc-connector=$_VPC_CONNECTOR-$_SECONDARY_REGION'
       - '--min-instances=3'
       - '--max-instances=5'
+      - '--cpu=2'
+      - '--memory=2Gi'
 
   # Create Backend Service
   - id: create-backend-service
