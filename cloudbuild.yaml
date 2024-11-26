@@ -126,7 +126,7 @@ steps:
           echo "Creating Global Backend Service..."
           gcloud compute backend-services create "${_SERVICE_NAME}-global-backend" \
             --global \
-            --load-balancing-scheme=EXTERNAL \
+            --load-balancing-scheme=EXTERNAL
           for region in $_PRIMARY_REGION $_SECONDARY_REGION; do
             echo "Adding NEG ${_SERVICE_NAME}-${region}-neg to the global backend service..."
             gcloud compute backend-services add-backend "${_SERVICE_NAME}-global-backend" \
