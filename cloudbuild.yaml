@@ -45,7 +45,7 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - '$_SERVICE_NAME-$_PRIMARY_REGION'
+      - '$_SERVICE_NAME'
       - '--image'
       - '$_AR_HOSTNAME/$_PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:$COMMIT_SHA'
       - '--region'
@@ -66,7 +66,7 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - '$_SERVICE_NAME-$_SECONDARY_REGION'
+      - '$_SERVICE_NAME'
       - '--image'
       - '$_AR_HOSTNAME/$_PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:$COMMIT_SHA'
       - '--region'
@@ -109,7 +109,7 @@ steps:
             gcloud compute network-endpoint-groups create "${_SERVICE_NAME}-${region}-neg" \
               --region="$region" \
               --network-endpoint-type=SERVERLESS \
-              --cloud-run-service=$_SERVICE_NAME-${region}
+              --cloud-run-service=$_SERVICE_NAME
           else
             echo "Serverless NEG $${_SERVICE_NAME}-${region}-neg already exists in $region."
           fi
