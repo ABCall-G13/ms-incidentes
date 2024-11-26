@@ -95,7 +95,8 @@ steps:
           echo "Reserving global static IP..."
           gcloud compute addresses create "${_SERVICE_NAME}-ip" \
             --global \
-            --network-tier=PREMIUM
+            --network-tier=PREMIUM \
+            --ip-version=IPV4
         else
           echo "Global static IP '${_SERVICE_NAME}-ip' already exists."
         fi
@@ -119,7 +120,6 @@ steps:
           fi
         done
 
-  # Crear un servicio de backend global
   - id: create-global-backend-service
     name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
@@ -127,10 +127,11 @@ steps:
       - '-c'
       - |
         if ! gcloud compute backend-services describe "${_SERVICE_NAME}-global-backend" --global &> /dev/null; then
-          echo "Creating Global Backend Service..."
+          echo "Creating Global Backend Service with Cloud CDN enabled..."
           gcloud compute backend-services create "${_SERVICE_NAME}-global-backend" \
             --global \
-            --load-balancing-scheme=EXTERNAL
+            --load-balancing-scheme=EXTERNAL_MANAGED \
+            --enable-cdn
           for region in $_PRIMARY_REGION $_SECONDARY_REGION; do
             echo "Adding NEG ${_SERVICE_NAME}-${region}-neg to the global backend service..."
             gcloud compute backend-services add-backend "${_SERVICE_NAME}-global-backend" \
@@ -140,6 +141,10 @@ steps:
           done
         else
           echo "Global Backend Service '${_SERVICE_NAME}-global-backend' already exists."
+          echo "Enabling Cloud CDN on existing backend service..."
+          gcloud compute backend-services update "${_SERVICE_NAME}-global-backend" \
+            --global \
+            --enable-cdn
         fi
 
 
@@ -183,7 +188,7 @@ steps:
           echo "Creating Global Forwarding Rule..."
           gcloud compute forwarding-rules create "${_SERVICE_NAME}-forwarding-rule" \
             --global \
-            --load-balancing-scheme=EXTERNAL \
+            --load-balancing-scheme=EXTERNAL_MANAGED \
             --network-tier=PREMIUM \
             --target-http-proxy="${_SERVICE_NAME}-global-http-proxy" \
             --address="${_SERVICE_NAME}-ip" \
