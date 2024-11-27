@@ -1,12 +1,13 @@
 import httpx
 
-async def registrar_incidente_facturado(radicado_incidente: str, costo: float, fecha_incidente: str, nit: str):
+async def registrar_incidente_facturado(radicado_incidente: str, costo: float, fecha_incidente: str, nit: str, cliente_id: int):
     url = "https://ms-facturacion-345518488840.us-central1.run.app/incidentes"
     payload = {
         "radicado_incidente": radicado_incidente,
         "costo": costo,
         "fecha_incidente": fecha_incidente,
-        "nit": nit
+        "nit": nit,
+        "cliente_id": cliente_id
     }
 
     async with httpx.AsyncClient() as client:

@@ -42,9 +42,10 @@ async def crear_incidente(
         try:
             factura_response = await registrar_incidente_facturado(
                 radicado_incidente=incidente.radicado,
-                costo=100,  # Costo fijo de $100
+                costo=100,  # Costo fijo de $100cop
                 fecha_incidente=incidente.fecha_creacion.isoformat(),
-                nit=incidente.identificacion_usuario  # Pasar el NIT al microservicio
+                nit=incidente.identificacion_usuario,
+                cliente_id=incidente.cliente_id
             )
             print("Incidente facturado registrado con éxito:", factura_response)
         except Exception as e:
