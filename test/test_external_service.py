@@ -10,6 +10,7 @@ async def test_registrar_incidente_facturado(mocker):
     costo = 100.0
     fecha_incidente = "2023-10-01"
     nit = "123456789"
+    cliente_id = 1
 
     # Mock de la respuesta de httpx
     mock_response = mocker.Mock(spec=Response)
@@ -22,7 +23,7 @@ async def test_registrar_incidente_facturado(mocker):
     mocker.patch("httpx.AsyncClient.post", return_value=mock_response)
 
     # Llamada a la función a probar
-    response = await registrar_incidente_facturado(radicado_incidente, costo, fecha_incidente, nit)
+    response = await registrar_incidente_facturado(radicado_incidente, costo, fecha_incidente, nit, cliente_id)
 
     # Validaciones
     assert response == {"message": "Incidente registrado con éxito"}
@@ -32,7 +33,8 @@ async def test_registrar_incidente_facturado(mocker):
             "radicado_incidente": radicado_incidente,
             "costo": costo,
             "fecha_incidente": fecha_incidente,
-            "nit": nit
+            "nit": nit,
+            "cliente_id": cliente_id
         },
         timeout=10.0
     )
