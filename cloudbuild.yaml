@@ -56,8 +56,8 @@ steps:
       - '--set-cloudsql-instances'
       - '$_CLOUDSQL_INSTANCE'
       - '--vpc-connector=$_VPC_CONNECTOR'
-      - '--min-instances=3'
-      - '--max-instances=5'
+      - '--min-instances=1'
+      - '--max-instances=1'
       - '--cpu=2'
       - '--memory=2Gi'
 
