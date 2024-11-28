@@ -5,6 +5,7 @@ from enum import Enum
 from datetime import date, datetime
 import secrets
 import string
+import pytz
 
 
 class Categoria(str, Enum):
@@ -32,6 +33,10 @@ class Estado(str, Enum):
     escalado = "escalado"
 
 
+def bogota_date():
+    bogota_tz = pytz.timezone('America/Bogota')
+    return datetime.now(bogota_tz).date()
+
 class Incidente(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     description: str = Field(sa_column=Column(TEXT))
@@ -40,7 +45,7 @@ class Incidente(SQLModel, table=True):
     canal: Canal
     cliente_id: int
     estado: Estado
-    fecha_creacion: date = Field(default_factory=date.today)
+    fecha_creacion: Optional[date] = Field(default_factory=bogota_date)
     fecha_cierre: Optional[date] = None
     solucion: Optional[str] = Field(sa_column=Column(TEXT))
     radicado: str = Field(
