@@ -6,7 +6,6 @@ async def registrar_incidente_facturado(radicado_incidente: str, costo: float, f
         "radicado_incidente": radicado_incidente,
         "costo": costo,
         "fecha_incidente": fecha_incidente,
-        "nit": nit,
         "cliente_id": cliente_id
     }
 

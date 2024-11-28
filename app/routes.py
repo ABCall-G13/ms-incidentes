@@ -44,7 +44,6 @@ async def crear_incidente(
                 radicado_incidente=incidente.radicado,
                 costo=100,  # Costo fijo de $100cop
                 fecha_incidente=incidente.fecha_creacion.isoformat(),
-                nit=incidente.identificacion_usuario,
                 cliente_id=incidente.cliente_id
             )
             print("Incidente facturado registrado con éxito:", factura_response)
