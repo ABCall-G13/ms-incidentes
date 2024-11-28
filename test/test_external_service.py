@@ -23,7 +23,7 @@ async def test_registrar_incidente_facturado(mocker):
     mocker.patch("httpx.AsyncClient.post", return_value=mock_response)
 
     # Llamada a la función a probar
-    response = await registrar_incidente_facturado(radicado_incidente, costo, fecha_incidente, nit, cliente_id)
+    response = await registrar_incidente_facturado(radicado_incidente, costo, fecha_incidente, cliente_id)
 
     # Validaciones
     assert response == {"message": "Incidente registrado con éxito"}

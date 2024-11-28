@@ -1,6 +1,6 @@
 import httpx
 
-async def registrar_incidente_facturado(radicado_incidente: str, costo: float, fecha_incidente: str, nit: str, cliente_id: int):
+async def registrar_incidente_facturado(radicado_incidente: str, costo: float, fecha_incidente: str, cliente_id: int):
     url = "https://ms-facturacion-345518488840.us-central1.run.app/incidentes"
     payload = {
         "radicado_incidente": radicado_incidente,
